@@ -9,7 +9,9 @@ When implementing new features or fixes:
 3. **Start container** - `docker compose up -d`
 4. **Check logs** - `docker compose logs` - Verify everything works
 5. **Test manually** - Access http://localhost:3050 and verify functionality
-6. **Push to GitHub** - `git add . && git commit -m "message" && git push`
+6. **Push to GitHub** - ONLY after validating container is running properly: `git add . && git commit -m "message" && git push`
+
+**IMPORTANT**: Always complete steps 4 and 5 (validation) before pushing to GitHub in step 6.
 
 ## Quick Commands
 
