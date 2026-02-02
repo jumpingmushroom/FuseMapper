@@ -18,8 +18,13 @@ model Panel {
   mainBreakerAmperage Int?    @map("main_breaker_amperage")
   mainBreakerType     String? @map("main_breaker_type")
 
-  rows  Row[]
-  fuses Fuse[]
+  // Sub-panel properties
+  parentFuseId String? @unique @map("parent_fuse_id")
+  feedAmperage Int?    @map("feed_amperage")
+
+  rows        Row[]
+  fuses       Fuse[]
+  parentFuse  Fuse?  @relation("SubPanel", fields: [parentFuseId], references: [id], onDelete: SetNull)
 
   @@map("panels")
 }
@@ -60,9 +65,10 @@ model Fuse {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  panel   Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
-  row     Row?     @relation(fields: [rowId], references: [id], onDelete: SetNull)
-  sockets Socket[]
+  panel    Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  row      Row?     @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  sockets  Socket[]
+  subPanel Panel?   @relation("SubPanel")
 
   @@unique([panelId, slotNumber])
   @@map("fuses")

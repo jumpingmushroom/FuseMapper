@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Settings, Printer } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { usePanel, useUpdatePanel } from '@/hooks';
+import { usePanel, useUpdatePanel, usePanelHierarchy } from '@/hooks';
 import { Button, Card, CardBody, Modal, Input, Select } from '@/components/ui';
 import { PanelTree } from '@/components/panel/PanelTree';
+import { PanelBreadcrumbs } from '@/components/panel/PanelBreadcrumbs';
 import { PrintableCircuitList } from '@/components/panel/PrintableCircuitList';
 import { DevicePalette } from '@/components/device/DevicePalette';
 import { DndProvider } from '@/components/dnd/DndProvider';
@@ -13,7 +14,9 @@ import { COMMON_AMPERAGES } from '@fusemapper/shared';
 export function PanelEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: panel, isLoading, error } = usePanel(id!);
+  const [currentPanelId, setCurrentPanelId] = useState(id!);
+  const { data: panel, isLoading, error } = usePanel(currentPanelId);
+  const { data: hierarchy } = usePanelHierarchy(currentPanelId);
   const updatePanel = useUpdatePanel();
   const printRef = useRef<HTMLDivElement>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -23,6 +26,23 @@ export function PanelEditor() {
     mainBreakerAmperage: 63,
     mainBreakerType: 'MAIN',
   });
+
+  // Update current panel when URL changes
+  useEffect(() => {
+    if (id) {
+      setCurrentPanelId(id);
+    }
+  }, [id]);
+
+  const handleNavigateToSubPanel = (subPanelId: string) => {
+    setCurrentPanelId(subPanelId);
+    navigate(`/panels/${subPanelId}`);
+  };
+
+  const handleNavigateToPanel = (panelId: string) => {
+    setCurrentPanelId(panelId);
+    navigate(`/panels/${panelId}`);
+  };
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
@@ -84,14 +104,19 @@ export function PanelEditor() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between no-print">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
               <ArrowLeft size={18} />
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">{panel.name}</h1>
               {panel.location && (
                 <p className="text-gray-500">{panel.location}</p>
+              )}
+              {panel.parentFuseId && panel.feedAmperage && (
+                <p className="text-sm text-purple-600 font-medium">
+                  Sub-Panel • {panel.feedAmperage}A Feed
+                </p>
               )}
             </div>
           </div>
@@ -106,13 +131,24 @@ export function PanelEditor() {
           </div>
         </div>
 
+        {/* Breadcrumbs */}
+        {hierarchy && hierarchy.length > 1 && (
+          <PanelBreadcrumbs
+            hierarchy={hierarchy}
+            onNavigate={handleNavigateToPanel}
+          />
+        )}
+
         {/* Editor Layout */}
         <div className="flex gap-6">
           {/* Panel Tree */}
           <div className="flex-1 overflow-x-auto" ref={printRef}>
             <Card className="no-print">
               <CardBody className="p-6">
-                <PanelTree panel={panel as any} />
+                <PanelTree
+                  panel={panel as any}
+                  onNavigateToSubPanel={handleNavigateToSubPanel}
+                />
               </CardBody>
             </Card>
             {/* Printable Circuit List (hidden on screen, shown when printing) */}

@@ -9,9 +9,10 @@ import { Button } from '@/components/ui';
 interface RowNodeProps {
   row: RowWithFuses;
   panelId: string;
+  onNavigateToSubPanel?: (subPanelId: string) => void;
 }
 
-export function RowNode({ row, panelId }: RowNodeProps) {
+export function RowNode({ row, panelId, onNavigateToSubPanel }: RowNodeProps) {
   const updateRow = useUpdateRow(panelId);
   const deleteRow = useDeleteRow(panelId);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -61,7 +62,11 @@ export function RowNode({ row, panelId }: RowNodeProps) {
           {/* Fuses */}
           {row.fuses.map((fuse) => (
             <div key={fuse.id} className="flex-shrink-0">
-              <FuseNode fuse={fuse} panelId={panelId} />
+              <FuseNode
+                fuse={fuse}
+                panelId={panelId}
+                onNavigateToSubPanel={onNavigateToSubPanel}
+              />
             </div>
           ))}
 

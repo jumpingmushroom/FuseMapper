@@ -14,9 +14,10 @@ interface PanelTreeProps {
     rows?: RowWithFuses[];
     fuses?: FuseWithSockets[];
   };
+  onNavigateToSubPanel?: (subPanelId: string) => void;
 }
 
-export function PanelTree({ panel }: PanelTreeProps) {
+export function PanelTree({ panel, onNavigateToSubPanel }: PanelTreeProps) {
   const createRow = useCreateRow(panel.id);
   const createFuse = useCreateFuse(panel.id);
   const [showCreateRowModal, setShowCreateRowModal] = useState(false);
@@ -61,7 +62,12 @@ export function PanelTree({ panel }: PanelTreeProps) {
       {panel.rows && panel.rows.length > 0 && (
         <div className="space-y-4">
           {panel.rows.map((row) => (
-            <RowNode key={row.id} row={row as RowWithFuses} panelId={panel.id} />
+            <RowNode
+              key={row.id}
+              row={row as RowWithFuses}
+              panelId={panel.id}
+              onNavigateToSubPanel={onNavigateToSubPanel}
+            />
           ))}
         </div>
       )}
@@ -81,7 +87,11 @@ export function PanelTree({ panel }: PanelTreeProps) {
             <div className="flex flex-wrap gap-4">
               {unassignedFuses.map((fuse) => (
                 <div key={fuse.id} className="flex-shrink-0">
-                  <FuseNode fuse={fuse} panelId={panel.id} />
+                  <FuseNode
+                    fuse={fuse}
+                    panelId={panel.id}
+                    onNavigateToSubPanel={onNavigateToSubPanel}
+                  />
                 </div>
               ))}
             </div>

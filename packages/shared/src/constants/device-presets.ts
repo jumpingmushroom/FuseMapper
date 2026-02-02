@@ -67,3 +67,16 @@ export const CATEGORY_ICONS: Record<DeviceCategory, string> = {
   heating: 'Flame',
   other: 'MoreHorizontal',
 };
+
+// Sub-Panel Feed Amperage Options
+export const SUB_PANEL_FEED_OPTIONS = [
+  { value: 20, label: '20A Sub-Panel Feed' },
+  { value: 30, label: '30A Sub-Panel Feed' },
+  { value: 40, label: '40A Sub-Panel Feed' },
+  { value: 60, label: '60A Sub-Panel Feed' },
+  { value: 80, label: '80A Sub-Panel Feed' },
+  { value: 100, label: '100A Sub-Panel Feed' },
+  { value: 125, label: '125A Sub-Panel Feed' },
+  { value: 150, label: '150A Sub-Panel Feed' },
+  { value: 200, label: '200A Sub-Panel Feed' },
+];

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { CreateFuseInput, UpdateFuseInput } from '@fusemapper/shared';
+import type { CreateFuseInput, UpdateFuseInput, CreateSubPanelInput } from '@fusemapper/shared';
 import { fusesApi } from '@/api';
 import { panelKeys } from './usePanels';
 
@@ -34,6 +34,19 @@ export function useDeleteFuse(panelId: string) {
 
   return useMutation({
     mutationFn: (id: string) => fusesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: panelKeys.detail(panelId) });
+      queryClient.invalidateQueries({ queryKey: panelKeys.lists() });
+    },
+  });
+}
+
+export function useCreateSubPanel(panelId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fuseId, data }: { fuseId: string; data: Omit<CreateSubPanelInput, 'fuseId'> }) =>
+      fusesApi.createSubPanel(fuseId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: panelKeys.detail(panelId) });
       queryClient.invalidateQueries({ queryKey: panelKeys.lists() });

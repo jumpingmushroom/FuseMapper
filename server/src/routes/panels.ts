@@ -30,6 +30,7 @@ const panelIncludes = {
             },
             orderBy: { sortOrder: 'asc' as const },
           },
+          subPanel: true,
         },
         orderBy: [
           { slotNumber: { sort: 'asc' as const, nulls: 'last' as const } },
@@ -77,7 +78,14 @@ router.get('/:id', async (req, res, next) => {
   try {
     const panel = await prisma.panel.findUnique({
       where: { id: req.params.id },
-      include: panelIncludes,
+      include: {
+        ...panelIncludes,
+        parentFuse: {
+          include: {
+            panel: true,
+          },
+        },
+      },
     });
 
     if (!panel) {
@@ -85,6 +93,59 @@ router.get('/:id', async (req, res, next) => {
     }
 
     res.json({ data: panel, success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/panels/:id/hierarchy - Get panel hierarchy
+router.get('/:id/hierarchy', async (req, res, next) => {
+  try {
+    const panel = await prisma.panel.findUnique({
+      where: { id: req.params.id },
+      include: {
+        parentFuse: {
+          include: {
+            panel: true,
+          },
+        },
+      },
+    });
+
+    if (!panel) {
+      throw new ApiError(404, 'Panel not found');
+    }
+
+    // Build hierarchy chain from root to current panel
+    const hierarchy = [];
+    let currentPanel: typeof panel | null = panel;
+
+    // Traverse up to root panel
+    while (currentPanel) {
+      hierarchy.unshift({
+        id: currentPanel.id,
+        name: currentPanel.name,
+        parentFuseId: currentPanel.parentFuseId,
+        feedAmperage: currentPanel.feedAmperage,
+      });
+
+      if (currentPanel.parentFuse?.panel) {
+        currentPanel = await prisma.panel.findUnique({
+          where: { id: currentPanel.parentFuse.panel.id },
+          include: {
+            parentFuse: {
+              include: {
+                panel: true,
+              },
+            },
+          },
+        });
+      } else {
+        currentPanel = null;
+      }
+    }
+
+    res.json({ data: hierarchy, success: true });
   } catch (error) {
     next(error);
   }

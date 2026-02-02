@@ -4,13 +4,15 @@ import { calculateLoad, getLoadStatusColor, formatWattage, FUSE_TYPE_COLORS } fr
 import { FuseModal } from './FuseModal';
 import { SocketChain } from './SocketChain';
 import { useUpdateFuse, useDeleteFuse } from '@/hooks';
+import { Grid3x3 } from 'lucide-react';
 
 interface FuseNodeProps {
   fuse: FuseWithSockets;
   panelId: string;
+  onNavigateToSubPanel?: (subPanelId: string) => void;
 }
 
-export function FuseNode({ fuse, panelId }: FuseNodeProps) {
+export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps) {
   const updateFuse = useUpdateFuse(panelId);
   const deleteFuse = useDeleteFuse(panelId);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -35,15 +37,29 @@ export function FuseNode({ fuse, panelId }: FuseNodeProps) {
   // Count total devices across all sockets
   const totalDevices = fuse.sockets.reduce((sum, socket) => sum + socket.devices.length, 0);
 
+  // Check if fuse has a sub-panel
+  const subPanel = (fuse as any).subPanel;
+  const hasSubPanel = !!subPanel;
+
+  const handleFuseClick = () => {
+    if (hasSubPanel && onNavigateToSubPanel) {
+      // Navigate to sub-panel instead of opening edit modal
+      onNavigateToSubPanel(subPanel.id);
+    } else {
+      setShowEditModal(true);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center pt-4">
       {/* Fuse Node */}
       <div
         className={`relative bg-white rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md border
           ${!fuse.isActive ? 'opacity-60' : ''}
+          ${hasSubPanel ? 'border-l-4 border-l-purple-500' : ''}
         `}
         style={{ width: '160px' }}
-        onClick={() => setShowEditModal(true)}
+        onClick={handleFuseClick}
       >
         {/* Slot Number Badge */}
         {fuse.slotNumber !== null && (
@@ -62,14 +78,21 @@ export function FuseNode({ fuse, panelId }: FuseNodeProps) {
 
         {/* Content */}
         <div className="p-2">
-          {/* Type badge and amperage */}
+          {/* Type badge, amperage, and sub-panel indicator */}
           <div className="flex items-center justify-between text-xs mb-1">
-            <span
-              className="px-1.5 py-0.5 rounded text-white font-medium"
-              style={{ backgroundColor: typeColor }}
-            >
-              {fuse.type}
-            </span>
+            <div className="flex items-center gap-1">
+              <span
+                className="px-1.5 py-0.5 rounded text-white font-medium"
+                style={{ backgroundColor: typeColor }}
+              >
+                {fuse.type}
+              </span>
+              {hasSubPanel && (
+                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
+                  <Grid3x3 size={10} />
+                </span>
+              )}
+            </div>
             {fuse.amperage && (
               <span className="font-bold text-gray-700">
                 {fuse.amperage}A{fuse.curveType ? fuse.curveType : ''}
@@ -81,6 +104,13 @@ export function FuseNode({ fuse, panelId }: FuseNodeProps) {
           <div className="text-sm font-medium text-gray-900 truncate">
             {fuse.label || 'Unlabeled'}
           </div>
+
+          {/* Sub-panel name if present */}
+          {hasSubPanel && (
+            <div className="text-xs text-purple-600 font-medium truncate mt-0.5">
+              → {subPanel.name}
+            </div>
+          )}
 
           {/* Load indicator */}
           {fuse.amperage && totalDevices > 0 && (
@@ -100,10 +130,17 @@ export function FuseNode({ fuse, panelId }: FuseNodeProps) {
             </div>
           )}
 
-          {/* Socket/device count */}
-          <div className="text-[10px] text-gray-400 mt-1">
-            {fuse.sockets.length} socket{fuse.sockets.length !== 1 ? 's' : ''} · {totalDevices} device{totalDevices !== 1 ? 's' : ''}
-          </div>
+          {/* Socket/device count or sub-panel indicator */}
+          {!hasSubPanel && (
+            <div className="text-[10px] text-gray-400 mt-1">
+              {fuse.sockets.length} socket{fuse.sockets.length !== 1 ? 's' : ''} · {totalDevices} device{totalDevices !== 1 ? 's' : ''}
+            </div>
+          )}
+          {hasSubPanel && (
+            <div className="text-[10px] text-purple-500 mt-1 font-medium">
+              Click to view sub-panel
+            </div>
+          )}
         </div>
       </div>
 

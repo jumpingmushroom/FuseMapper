@@ -8,6 +8,8 @@ export const panelKeys = {
   list: () => [...panelKeys.lists()] as const,
   details: () => [...panelKeys.all, 'detail'] as const,
   detail: (id: string) => [...panelKeys.details(), id] as const,
+  hierarchies: () => [...panelKeys.all, 'hierarchy'] as const,
+  hierarchy: (id: string) => [...panelKeys.hierarchies(), id] as const,
 };
 
 export function usePanels() {
@@ -21,6 +23,14 @@ export function usePanel(id: string) {
   return useQuery({
     queryKey: panelKeys.detail(id),
     queryFn: () => panelsApi.get(id),
+    enabled: !!id,
+  });
+}
+
+export function usePanelHierarchy(id: string) {
+  return useQuery({
+    queryKey: panelKeys.hierarchy(id),
+    queryFn: () => panelsApi.hierarchy(id),
     enabled: !!id,
   });
 }

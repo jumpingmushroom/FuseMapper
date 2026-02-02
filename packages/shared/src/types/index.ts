@@ -5,9 +5,12 @@ export interface Panel {
   location: string | null;
   mainBreakerAmperage: number | null;
   mainBreakerType: string | null;
+  parentFuseId: string | null;
+  feedAmperage: number | null;
   createdAt: Date;
   updatedAt: Date;
   rows?: Row[];
+  parentFuse?: Fuse | null;
 }
 
 export interface CreatePanelInput {
@@ -15,6 +18,8 @@ export interface CreatePanelInput {
   location?: string;
   mainBreakerAmperage?: number;
   mainBreakerType?: string;
+  parentFuseId?: string;
+  feedAmperage?: number;
 }
 
 export interface UpdatePanelInput {
@@ -22,6 +27,15 @@ export interface UpdatePanelInput {
   location?: string;
   mainBreakerAmperage?: number | null;
   mainBreakerType?: string | null;
+  parentFuseId?: string | null;
+  feedAmperage?: number | null;
+}
+
+export interface CreateSubPanelInput {
+  fuseId: string;
+  name: string;
+  feedAmperage: number;
+  location?: string;
 }
 
 // Row Types
@@ -78,6 +92,7 @@ export interface Fuse {
   updatedAt: Date;
   sockets?: Socket[];
   row?: Row | null;
+  subPanel?: Panel | null;
 }
 
 export interface CreateFuseInput {

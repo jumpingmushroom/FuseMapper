@@ -185,4 +185,89 @@ router.post('/:fuseId/sockets', async (req, res, next) => {
   }
 });
 
+// POST /api/fuses/:fuseId/subpanel - Create sub-panel linked to fuse
+const createSubPanelSchema = z.object({
+  name: z.string().min(1).max(100),
+  feedAmperage: z.number().int().min(1).max(1000),
+  location: z.string().max(200).optional(),
+});
+
+router.post('/:fuseId/subpanel', async (req, res, next) => {
+  try {
+    const data = createSubPanelSchema.parse(req.body);
+    const fuseId = req.params.fuseId;
+
+    // Verify fuse exists
+    const fuse = await prisma.fuse.findUnique({
+      where: { id: fuseId },
+      include: { subPanel: true },
+    });
+
+    if (!fuse) {
+      throw new ApiError(404, 'Fuse not found');
+    }
+
+    // Check if fuse already has a sub-panel
+    if (fuse.subPanel) {
+      throw new ApiError(400, 'This fuse already has a sub-panel connected');
+    }
+
+    // Validate feed amperage doesn't exceed fuse amperage
+    if (fuse.amperage && data.feedAmperage > fuse.amperage) {
+      throw new ApiError(
+        400,
+        `Sub-panel feed amperage (${data.feedAmperage}A) cannot exceed fuse amperage (${fuse.amperage}A)`
+      );
+    }
+
+    // Create the sub-panel
+    const panel = await prisma.panel.create({
+      data: {
+        name: data.name,
+        location: data.location,
+        parentFuseId: fuseId,
+        feedAmperage: data.feedAmperage,
+      },
+      include: {
+        rows: {
+          include: {
+            fuses: {
+              include: {
+                sockets: {
+                  include: {
+                    devices: {
+                      include: { room: true },
+                      orderBy: { sortOrder: 'asc' },
+                    },
+                    room: true,
+                  },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
+            },
+          },
+        },
+        fuses: {
+          include: {
+            sockets: {
+              include: {
+                devices: {
+                  include: { room: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+                room: true,
+              },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(201).json({ data: panel, success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

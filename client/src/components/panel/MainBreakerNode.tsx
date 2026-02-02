@@ -18,7 +18,8 @@ export function MainBreakerNode({ panel }: MainBreakerNodeProps) {
     mainBreakerType: panel.mainBreakerType || 'MAIN',
   });
 
-  const typeColor = FUSE_TYPE_COLORS.MAIN;
+  const isSubPanel = !!panel.parentFuseId;
+  const typeColor = isSubPanel ? FUSE_TYPE_COLORS.RCBO : FUSE_TYPE_COLORS.MAIN;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,21 +50,39 @@ export function MainBreakerNode({ panel }: MainBreakerNodeProps) {
           {/* Icon and title */}
           <div className="flex items-center gap-2 mb-2">
             <Zap size={20} className="text-gray-700" />
-            <span className="font-bold text-gray-900">Main Breaker</span>
+            <span className="font-bold text-gray-900">
+              {isSubPanel ? 'Sub-Panel Feed' : 'Main Breaker'}
+            </span>
           </div>
 
           {/* Amperage display */}
-          <div className="flex items-center justify-between">
-            <span
-              className="px-2 py-0.5 rounded text-white text-xs font-medium"
-              style={{ backgroundColor: typeColor }}
-            >
-              {panel.mainBreakerType || 'MAIN'}
-            </span>
-            <span className="font-bold text-lg text-gray-800">
-              {panel.mainBreakerAmperage || '—'}A
-            </span>
-          </div>
+          {isSubPanel && panel.feedAmperage ? (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="px-2 py-0.5 rounded text-white text-xs font-medium bg-purple-600">
+                  FEED
+                </span>
+                <span className="font-bold text-lg text-gray-800">
+                  {panel.feedAmperage}A
+                </span>
+              </div>
+              <div className="text-xs text-purple-600 font-medium">
+                Fed from parent panel
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span
+                className="px-2 py-0.5 rounded text-white text-xs font-medium"
+                style={{ backgroundColor: typeColor }}
+              >
+                {panel.mainBreakerType || 'MAIN'}
+              </span>
+              <span className="font-bold text-lg text-gray-800">
+                {panel.mainBreakerAmperage || '—'}A
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Settings icon */}
