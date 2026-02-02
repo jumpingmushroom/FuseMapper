@@ -40,7 +40,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   { name: 'Floor Heating', icon: 'floor-heating', category: 'heating', estimatedWattage: 1500, connectionType: 'hardwired' },
   { name: 'Electric Radiator', icon: 'radiator', category: 'heating', estimatedWattage: 1000, connectionType: 'flexible' },
   { name: 'Water Heater', icon: 'water-heater', category: 'heating', estimatedWattage: 2000, connectionType: 'flexible' },
-  { name: 'Heat Pump', icon: 'heat-pump', category: 'heating', estimatedWattage: 1500, connectionType: 'flexible' },
+  { name: 'Heat Pump', icon: 'heat-pump', category: 'heating', estimatedWattage: 1500, connectionType: 'hardwired' },
   { name: 'Towel Warmer', icon: 'radiator', category: 'heating', estimatedWattage: 100, connectionType: 'flexible' },
 
   // Other

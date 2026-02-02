@@ -30,6 +30,10 @@ const panelIncludes = {
             },
             orderBy: { sortOrder: 'asc' as const },
           },
+          hardwiredDevices: {
+            include: { room: true },
+            orderBy: { sortOrder: 'asc' as const },
+          },
           subPanel: true,
         },
         orderBy: [
@@ -50,6 +54,10 @@ const panelIncludes = {
           },
           room: true,
         },
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      hardwiredDevices: {
+        include: { room: true },
         orderBy: { sortOrder: 'asc' as const },
       },
     },
