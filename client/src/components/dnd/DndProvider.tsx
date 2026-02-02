@@ -58,30 +58,58 @@ export function DndProvider({ children, panelId }: DndProviderProps) {
     if (!over) return;
 
     const overData = over.data.current;
-    if (!overData || overData.type !== 'socket') return;
-
-    const socketId = overData.socketId as string;
     const activeData = active.data.current;
 
-    if (activeData?.type === 'device' && activeData.device) {
-      // Move existing device
-      const device = activeData.device as DeviceWithRoom;
-      if (device.socketId !== socketId) {
-        await moveDevice.mutateAsync({
-          id: device.id,
-          data: { socketId },
+    // Handle drops on sockets
+    if (overData?.type === 'socket') {
+      const socketId = overData.socketId as string;
+
+      if (activeData?.type === 'device' && activeData.device) {
+        // Move existing device to socket
+        const device = activeData.device as DeviceWithRoom;
+        if (device.socketId !== socketId) {
+          await moveDevice.mutateAsync({
+            id: device.id,
+            data: { socketId, fuseId: null },
+          });
+        }
+      } else if (activeData?.type === 'preset' && activeData.preset) {
+        // Create new device from preset on socket
+        const preset = activeData.preset as DevicePreset;
+        await createDevice.mutateAsync({
+          socketId,
+          name: preset.name,
+          icon: preset.icon,
+          category: preset.category,
+          estimatedWattage: preset.estimatedWattage,
         });
       }
-    } else if (activeData?.type === 'preset' && activeData.preset) {
-      // Create new device from preset
-      const preset = activeData.preset as DevicePreset;
-      await createDevice.mutateAsync({
-        socketId,
-        name: preset.name,
-        icon: preset.icon,
-        category: preset.category,
-        estimatedWattage: preset.estimatedWattage,
-      });
+    }
+
+    // Handle drops on fuses (hardwired devices)
+    else if (overData?.type === 'fuse') {
+      const fuseId = overData.fuseId as string;
+
+      if (activeData?.type === 'device' && activeData.device) {
+        // Move existing device to fuse (convert to hardwired)
+        const device = activeData.device as DeviceWithRoom;
+        if (device.fuseId !== fuseId) {
+          await moveDevice.mutateAsync({
+            id: device.id,
+            data: { fuseId, socketId: null },
+          });
+        }
+      } else if (activeData?.type === 'preset' && activeData.preset) {
+        // Create new hardwired device from preset
+        const preset = activeData.preset as DevicePreset;
+        await createDevice.mutateAsync({
+          fuseId,
+          name: preset.name,
+          icon: preset.icon,
+          category: preset.category,
+          estimatedWattage: preset.estimatedWattage,
+        });
+      }
     }
   };
 

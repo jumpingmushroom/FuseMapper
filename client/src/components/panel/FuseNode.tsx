@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import type { FuseWithSockets, UpdateFuseInput } from '@fusemapper/shared';
 import { calculateLoad, getLoadStatusColor, formatWattage, FUSE_TYPE_COLORS } from '@fusemapper/shared';
 import { FuseModal } from './FuseModal';
 import { SocketChain } from './SocketChain';
+import { HardwiredDeviceList } from '../device/HardwiredDeviceList';
 import { useUpdateFuse, useDeleteFuse } from '@/hooks';
 import { Grid3x3 } from 'lucide-react';
 
@@ -17,10 +19,16 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
   const deleteFuse = useDeleteFuse(panelId);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const { setNodeRef, isOver } = useDroppable({
+    id: `fuse-${fuse.id}`,
+    data: { type: 'fuse', fuseId: fuse.id },
+  });
+
   const load = calculateLoad({
     fuseId: fuse.id,
     amperage: fuse.amperage,
     sockets: fuse.sockets,
+    hardwiredDevices: fuse.hardwiredDevices,
   });
 
   const typeColor = FUSE_TYPE_COLORS[fuse.type as keyof typeof FUSE_TYPE_COLORS] || '#6B7280';
@@ -34,8 +42,9 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
     await deleteFuse.mutateAsync(fuse.id);
   };
 
-  // Count total devices across all sockets
-  const totalDevices = fuse.sockets.reduce((sum, socket) => sum + socket.devices.length, 0);
+  // Count total devices across all sockets and hardwired
+  const totalDevices = fuse.sockets.reduce((sum, socket) => sum + socket.devices.length, 0) +
+    (fuse.hardwiredDevices?.length || 0);
 
   // Check if fuse has a sub-panel
   const subPanel = (fuse as any).subPanel;
@@ -54,9 +63,11 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
     <div className="flex flex-col items-center pt-4">
       {/* Fuse Node */}
       <div
+        ref={setNodeRef}
         className={`relative bg-white rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md border
           ${!fuse.isActive ? 'opacity-60' : ''}
           ${hasSubPanel ? 'border-l-4 border-l-purple-500' : ''}
+          ${isOver ? 'ring-2 ring-orange-500' : ''}
         `}
         style={{ width: '160px' }}
         onClick={handleFuseClick}
@@ -146,6 +157,11 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
 
       {/* Socket Chain */}
       <SocketChain fuse={fuse} panelId={panelId} />
+
+      {/* Hardwired Devices */}
+      {fuse.hardwiredDevices && fuse.hardwiredDevices.length > 0 && (
+        <HardwiredDeviceList devices={fuse.hardwiredDevices} panelId={panelId} />
+      )}
 
       {/* Edit Modal */}
       <FuseModal

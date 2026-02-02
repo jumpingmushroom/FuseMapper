@@ -201,6 +201,7 @@ export type DeviceIcon =
 export interface Device {
   id: string;
   socketId: string | null;
+  fuseId: string | null;
   name: string;
   icon: DeviceIcon;
   category: DeviceCategory;
@@ -215,6 +216,7 @@ export interface Device {
 
 export interface CreateDeviceInput {
   socketId?: string;
+  fuseId?: string;
   name: string;
   icon?: DeviceIcon;
   category?: DeviceCategory;
@@ -226,6 +228,7 @@ export interface CreateDeviceInput {
 
 export interface UpdateDeviceInput {
   socketId?: string | null;
+  fuseId?: string | null;
   name?: string;
   icon?: DeviceIcon;
   category?: DeviceCategory;
@@ -236,7 +239,8 @@ export interface UpdateDeviceInput {
 }
 
 export interface MoveDeviceInput {
-  socketId: string | null;
+  socketId?: string | null;
+  fuseId?: string | null;
   sortOrder?: number;
 }
 
@@ -266,6 +270,7 @@ export interface SocketWithDevices extends Socket {
 
 export interface FuseWithSockets extends Fuse {
   sockets: SocketWithDevices[];
+  hardwiredDevices?: DeviceWithRoom[];
 }
 
 export interface RowWithFuses extends Row {

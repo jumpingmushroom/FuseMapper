@@ -66,6 +66,10 @@ const fuseIncludes = {
     },
     orderBy: { sortOrder: 'asc' as const },
   },
+  hardwiredDevices: {
+    include: { room: true },
+    orderBy: { sortOrder: 'asc' as const },
+  },
 };
 
 // GET /api/fuses/:id - Get single fuse

@@ -65,10 +65,11 @@ model Fuse {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  panel    Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
-  row      Row?     @relation(fields: [rowId], references: [id], onDelete: SetNull)
-  sockets  Socket[]
-  subPanel Panel?   @relation("SubPanel")
+  panel            Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  row              Row?     @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  sockets          Socket[]
+  hardwiredDevices Device[]
+  subPanel         Panel?   @relation("SubPanel")
 
   @@unique([panelId, slotNumber])
   @@map("fuses")
@@ -94,6 +95,7 @@ model Socket {
 model Device {
   id               String   @id @default(cuid())
   socketId         String?  @map("socket_id")
+  fuseId           String?  @map("fuse_id")
   name             String
   icon             String   @default("generic")
   category         String   @default("other")
@@ -105,6 +107,7 @@ model Device {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   socket Socket? @relation(fields: [socketId], references: [id], onDelete: SetNull)
+  fuse   Fuse?   @relation(fields: [fuseId], references: [id], onDelete: Cascade)
   room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
   @@map("devices")

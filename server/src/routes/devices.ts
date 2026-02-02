@@ -16,6 +16,7 @@ const iconEnum = z.enum([
 
 const createDeviceSchema = z.object({
   socketId: z.string().optional(),
+  fuseId: z.string().optional(),
   name: z.string().min(1).max(100),
   icon: iconEnum.default('generic'),
   category: categoryEnum.default('other'),
@@ -28,7 +29,8 @@ const createDeviceSchema = z.object({
 const updateDeviceSchema = createDeviceSchema.partial();
 
 const moveDeviceSchema = z.object({
-  socketId: z.string().nullable(),
+  socketId: z.string().optional().nullable(),
+  fuseId: z.string().optional().nullable(),
   sortOrder: z.number().int().optional(),
 });
 
@@ -79,10 +81,21 @@ router.post('/', async (req, res, next) => {
   try {
     const data = createDeviceSchema.parse(req.body);
 
-    // Get max sortOrder for the target socket
+    // Validate mutually exclusive socketId and fuseId
+    if (data.socketId && data.fuseId) {
+      throw new ApiError(400, 'Device cannot have both socketId and fuseId');
+    }
+
+    // Get max sortOrder for the target socket or fuse
     if (data.socketId && data.sortOrder === 0) {
       const maxOrder = await prisma.device.aggregate({
         where: { socketId: data.socketId },
+        _max: { sortOrder: true },
+      });
+      data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+    } else if (data.fuseId && data.sortOrder === 0) {
+      const maxOrder = await prisma.device.aggregate({
+        where: { fuseId: data.fuseId },
         _max: { sortOrder: true },
       });
       data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
@@ -113,10 +126,15 @@ router.patch('/:id', async (req, res, next) => {
   }
 });
 
-// PATCH /api/devices/:id/move - Move device to different socket
+// PATCH /api/devices/:id/move - Move device to different socket or fuse
 router.patch('/:id/move', async (req, res, next) => {
   try {
-    const { socketId, sortOrder } = moveDeviceSchema.parse(req.body);
+    const { socketId, fuseId, sortOrder } = moveDeviceSchema.parse(req.body);
+
+    // Validate mutually exclusive socketId and fuseId
+    if (socketId && fuseId) {
+      throw new ApiError(400, 'Device cannot have both socketId and fuseId');
+    }
 
     let newSortOrder = sortOrder;
 
@@ -127,13 +145,23 @@ router.patch('/:id/move', async (req, res, next) => {
         _max: { sortOrder: true },
       });
       newSortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+    } else if (newSortOrder === undefined && fuseId) {
+      const maxOrder = await prisma.device.aggregate({
+        where: { fuseId },
+        _max: { sortOrder: true },
+      });
+      newSortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
     } else if (newSortOrder === undefined) {
       newSortOrder = 0;
     }
 
     const device = await prisma.device.update({
       where: { id: req.params.id },
-      data: { socketId, sortOrder: newSortOrder },
+      data: {
+        socketId: socketId !== undefined ? socketId : undefined,
+        fuseId: fuseId !== undefined ? fuseId : undefined,
+        sortOrder: newSortOrder
+      },
       include: { room: true },
     });
     res.json({ data: device, success: true });

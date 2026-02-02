@@ -7,18 +7,25 @@ export interface LoadCalculatorOptions {
   fuseId: string;
   amperage: number | null;
   sockets: SocketWithDevices[];
+  hardwiredDevices?: Device[];
 }
 
 export function calculateLoad(options: LoadCalculatorOptions): LoadCalculation {
-  const { fuseId, amperage, sockets } = options;
+  const { fuseId, amperage, sockets, hardwiredDevices } = options;
 
   // Sum wattage from all devices across all sockets
-  const totalWattage = sockets.reduce((sum, socket) => {
+  const socketWattage = sockets.reduce((sum, socket) => {
     return sum + socket.devices.reduce((socketSum, device) => {
       return socketSum + (device.estimatedWattage ?? 0);
     }, 0);
   }, 0);
 
+  // Sum wattage from hardwired devices
+  const hardwiredWattage = (hardwiredDevices || []).reduce((sum, device) => {
+    return sum + (device.estimatedWattage ?? 0);
+  }, 0);
+
+  const totalWattage = socketWattage + hardwiredWattage;
   const maxWattage = amperage ? amperage * VOLTAGE : 0;
   const loadPercentage = maxWattage > 0 ? (totalWattage / maxWattage) * 100 : 0;
 
