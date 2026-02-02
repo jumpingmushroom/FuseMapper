@@ -8,26 +8,45 @@ datasource db {
 }
 
 model Panel {
-  id          String   @id @default(cuid())
-  name        String
-  location    String?
-  rows        Int      @default(3)
-  slotsPerRow Int      @default(12) @map("slots_per_row")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  // Main breaker properties (panel-level)
+  mainBreakerAmperage Int?    @map("main_breaker_amperage")
+  mainBreakerType     String? @map("main_breaker_type")
+
+  rows  Row[]
   fuses Fuse[]
 
   @@map("panels")
 }
 
+model Row {
+  id        String   @id @default(cuid())
+  panelId   String   @map("panel_id")
+  label     String?
+  position  Int      @default(0)
+  maxFuses  Int      @default(10) @map("max_fuses")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  panel Panel  @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  fuses Fuse[]
+
+  @@unique([panelId, position])
+  @@map("rows")
+}
+
 model Fuse {
   id           String   @id @default(cuid())
   panelId      String   @map("panel_id")
+  rowId        String?  @map("row_id")
   label        String?
-  row          Int
-  slotStart    Int      @map("slot_start")
-  slotWidth    Int      @default(1) @map("slot_width")
+  sortOrder    Int      @default(0) @map("sort_order")
+  slotNumber   Int?     @map("slot_number")
   poles        Int      @default(1)
   amperage     Int?
   type         String   @default("MCB")
@@ -42,14 +61,33 @@ model Fuse {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   panel   Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  row     Row?     @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  sockets Socket[]
+
+  @@unique([panelId, slotNumber])
+  @@map("fuses")
+}
+
+model Socket {
+  id        String   @id @default(cuid())
+  fuseId    String   @map("fuse_id")
+  label     String?
+  sortOrder Int      @default(0) @map("sort_order")
+  roomId    String?  @map("room_id")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  fuse    Fuse     @relation(fields: [fuseId], references: [id], onDelete: Cascade)
+  room    Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
   devices Device[]
 
-  @@map("fuses")
+  @@map("sockets")
 }
 
 model Device {
   id               String   @id @default(cuid())
-  fuseId           String?  @map("fuse_id")
+  socketId         String?  @map("socket_id")
   name             String
   icon             String   @default("generic")
   category         String   @default("other")
@@ -60,8 +98,8 @@ model Device {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  fuse Fuse? @relation(fields: [fuseId], references: [id], onDelete: SetNull)
-  room Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  socket Socket? @relation(fields: [socketId], references: [id], onDelete: SetNull)
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
   @@map("devices")
 }
@@ -73,6 +111,7 @@ model Room {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  sockets Socket[]
   devices Device[]
 
   @@map("rooms")

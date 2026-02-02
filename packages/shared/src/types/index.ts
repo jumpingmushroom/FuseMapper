@@ -3,24 +3,54 @@ export interface Panel {
   id: string;
   name: string;
   location: string | null;
-  rows: number;
-  slotsPerRow: number;
+  mainBreakerAmperage: number | null;
+  mainBreakerType: string | null;
   createdAt: Date;
   updatedAt: Date;
+  rows?: Row[];
 }
 
 export interface CreatePanelInput {
   name: string;
   location?: string;
-  rows: number;
-  slotsPerRow: number;
+  mainBreakerAmperage?: number;
+  mainBreakerType?: string;
 }
 
 export interface UpdatePanelInput {
   name?: string;
   location?: string;
-  rows?: number;
-  slotsPerRow?: number;
+  mainBreakerAmperage?: number | null;
+  mainBreakerType?: string | null;
+}
+
+// Row Types
+export interface Row {
+  id: string;
+  panelId: string;
+  label: string | null;
+  position: number;
+  maxFuses: number;
+  createdAt: Date;
+  updatedAt: Date;
+  fuses?: Fuse[];
+}
+
+export interface CreateRowInput {
+  panelId: string;
+  label?: string;
+  position?: number;
+  maxFuses?: number;
+}
+
+export interface UpdateRowInput {
+  label?: string | null;
+  position?: number;
+  maxFuses?: number;
+}
+
+export interface ReorderRowInput {
+  position: number;
 }
 
 // Fuse Types
@@ -30,10 +60,10 @@ export type CurveType = 'B' | 'C' | 'D' | null;
 export interface Fuse {
   id: string;
   panelId: string;
+  rowId: string | null;
   label: string | null;
-  row: number;
-  slotStart: number;
-  slotWidth: number;
+  sortOrder: number;
+  slotNumber: number | null;
   poles: number;
   amperage: number | null;
   type: FuseType;
@@ -46,15 +76,16 @@ export interface Fuse {
   deviceUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
-  devices?: Device[];
+  sockets?: Socket[];
+  row?: Row | null;
 }
 
 export interface CreateFuseInput {
   panelId: string;
+  rowId?: string;
   label?: string;
-  row: number;
-  slotStart: number;
-  slotWidth?: number;
+  sortOrder?: number;
+  slotNumber?: number;
   poles?: number;
   amperage?: number;
   type?: FuseType;
@@ -68,10 +99,10 @@ export interface CreateFuseInput {
 }
 
 export interface UpdateFuseInput {
+  rowId?: string | null;
   label?: string;
-  row?: number;
-  slotStart?: number;
-  slotWidth?: number;
+  sortOrder?: number;
+  slotNumber?: number | null;
   poles?: number;
   amperage?: number;
   type?: FuseType;
@@ -82,6 +113,39 @@ export interface UpdateFuseInput {
   color?: string;
   notes?: string;
   deviceUrl?: string;
+}
+
+// Socket Types
+export interface Socket {
+  id: string;
+  fuseId: string;
+  label: string | null;
+  sortOrder: number;
+  roomId: string | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  room?: Room | null;
+  devices?: Device[];
+}
+
+export interface CreateSocketInput {
+  fuseId: string;
+  label?: string;
+  sortOrder?: number;
+  roomId?: string;
+  notes?: string;
+}
+
+export interface UpdateSocketInput {
+  label?: string;
+  sortOrder?: number;
+  roomId?: string | null;
+  notes?: string | null;
+}
+
+export interface ReorderSocketInput {
+  sortOrder: number;
 }
 
 // Device Types
@@ -121,7 +185,7 @@ export type DeviceIcon =
 
 export interface Device {
   id: string;
-  fuseId: string | null;
+  socketId: string | null;
   name: string;
   icon: DeviceIcon;
   category: DeviceCategory;
@@ -135,7 +199,7 @@ export interface Device {
 }
 
 export interface CreateDeviceInput {
-  fuseId?: string;
+  socketId?: string;
   name: string;
   icon?: DeviceIcon;
   category?: DeviceCategory;
@@ -146,7 +210,7 @@ export interface CreateDeviceInput {
 }
 
 export interface UpdateDeviceInput {
-  fuseId?: string | null;
+  socketId?: string | null;
   name?: string;
   icon?: DeviceIcon;
   category?: DeviceCategory;
@@ -157,7 +221,7 @@ export interface UpdateDeviceInput {
 }
 
 export interface MoveDeviceInput {
-  fuseId: string | null;
+  socketId: string | null;
   sortOrder?: number;
 }
 
@@ -181,12 +245,25 @@ export interface UpdateRoomInput {
 }
 
 // Panel with relations
-export interface PanelWithFuses extends Panel {
-  fuses: FuseWithDevices[];
+export interface SocketWithDevices extends Socket {
+  devices: DeviceWithRoom[];
 }
 
-export interface FuseWithDevices extends Fuse {
-  devices: DeviceWithRoom[];
+export interface FuseWithSockets extends Fuse {
+  sockets: SocketWithDevices[];
+}
+
+export interface RowWithFuses extends Row {
+  fuses: FuseWithSockets[];
+}
+
+export interface PanelWithRows extends Panel {
+  rows: RowWithFuses[];
+  fuses: FuseWithSockets[]; // For unassigned fuses
+}
+
+export interface PanelWithFuses extends Panel {
+  fuses: FuseWithSockets[];
 }
 
 export interface DeviceWithRoom extends Device {
@@ -206,6 +283,7 @@ export interface ImportResult {
   success: boolean;
   panelsImported: number;
   fusesImported: number;
+  socketsImported: number;
   devicesImported: number;
   roomsImported: number;
   errors: string[];

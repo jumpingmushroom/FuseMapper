@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Zap, MapPin, Trash2, Edit2, LayoutGrid } from 'lucide-react';
 import { usePanels, useCreatePanel, useDeletePanel } from '@/hooks';
-import { Button, Card, CardBody, Modal, Input } from '@/components/ui';
+import { Button, Card, CardBody, Modal, Input, Select } from '@/components/ui';
+import { COMMON_AMPERAGES } from '@fusemapper/shared';
 
 export function Dashboard() {
   const { data: panels, isLoading } = usePanels();
@@ -14,8 +15,8 @@ export function Dashboard() {
   const [formData, setFormData] = useState({
     name: '',
     location: '',
-    rows: 3,
-    slotsPerRow: 12,
+    mainBreakerAmperage: 63,
+    mainBreakerType: 'MAIN',
   });
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -23,11 +24,11 @@ export function Dashboard() {
     await createPanel.mutateAsync({
       name: formData.name,
       location: formData.location || undefined,
-      rows: formData.rows,
-      slotsPerRow: formData.slotsPerRow,
+      mainBreakerAmperage: formData.mainBreakerAmperage,
+      mainBreakerType: formData.mainBreakerType,
     });
     setShowCreateModal(false);
-    setFormData({ name: '', location: '', rows: 3, slotsPerRow: 12 });
+    setFormData({ name: '', location: '', mainBreakerAmperage: 63, mainBreakerType: 'MAIN' });
   };
 
   const handleDelete = async () => {
@@ -76,8 +77,16 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {panels?.map((panel) => {
             const fuseCount = panel.fuses?.length || 0;
+            // Count devices across all sockets
             const deviceCount = panel.fuses?.reduce(
-              (acc, fuse) => acc + (fuse.devices?.length || 0),
+              (acc, fuse) => acc + (fuse.sockets?.reduce(
+                (sockAcc, socket) => sockAcc + (socket.devices?.length || 0),
+                0
+              ) || 0),
+              0
+            ) || 0;
+            const socketCount = panel.fuses?.reduce(
+              (acc, fuse) => acc + (fuse.sockets?.length || 0),
               0
             ) || 0;
 
@@ -113,21 +122,21 @@ export function Dashboard() {
                       </div>
                     )}
 
-                    <div className="flex gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Rows:</span>{' '}
-                        <span className="font-medium">{panel.rows}</span>
+                    {panel.mainBreakerAmperage && (
+                      <div className="text-sm mb-3">
+                        <span className="text-gray-500">Main Breaker:</span>{' '}
+                        <span className="font-medium">{panel.mainBreakerAmperage}A</span>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Slots:</span>{' '}
-                        <span className="font-medium">{panel.slotsPerRow}/row</span>
-                      </div>
-                    </div>
+                    )}
 
-                    <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-sm">
+                    <div className="flex gap-4 pt-3 border-t border-gray-100 text-sm">
                       <div>
                         <span className="text-gray-500">Fuses:</span>{' '}
                         <span className="font-medium">{fuseCount}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Sockets:</span>{' '}
+                        <span className="font-medium">{socketCount}</span>
                       </div>
                       <div>
                         <span className="text-gray-500">Devices:</span>{' '}
@@ -163,23 +172,17 @@ export function Dashboard() {
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
           />
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Rows"
-              type="number"
-              min={1}
-              max={20}
-              value={formData.rows}
-              onChange={(e) => setFormData({ ...formData, rows: parseInt(e.target.value) || 3 })}
+            <Select
+              label="Main Breaker Amperage"
+              value={formData.mainBreakerAmperage}
+              onChange={(e) => setFormData({ ...formData, mainBreakerAmperage: parseInt(e.target.value) })}
+              options={[...COMMON_AMPERAGES, 80, 100, 125].sort((a, b) => a - b).map((a) => ({ value: a, label: `${a}A` }))}
             />
             <Input
-              label="Slots per Row"
-              type="number"
-              min={1}
-              max={24}
-              value={formData.slotsPerRow}
-              onChange={(e) =>
-                setFormData({ ...formData, slotsPerRow: parseInt(e.target.value) || 12 })
-              }
+              label="Main Breaker Type"
+              value={formData.mainBreakerType}
+              onChange={(e) => setFormData({ ...formData, mainBreakerType: e.target.value })}
+              placeholder="MAIN, MCB, etc."
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
@@ -205,8 +208,8 @@ export function Dashboard() {
         size="sm"
       >
         <p className="text-gray-600 mb-6">
-          Are you sure you want to delete this panel? This will also delete all fuses
-          and unassign all devices. This action cannot be undone.
+          Are you sure you want to delete this panel? This will also delete all fuses,
+          sockets, and unassign all devices. This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setDeleteTarget(null)}>

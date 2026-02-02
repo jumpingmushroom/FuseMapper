@@ -1,4 +1,4 @@
-import type { Device, LoadCalculation } from '../types/index.js';
+import type { Device, LoadCalculation, SocketWithDevices } from '../types/index.js';
 
 // Norwegian standard voltage
 export const VOLTAGE = 230;
@@ -6,10 +6,48 @@ export const VOLTAGE = 230;
 export interface LoadCalculatorOptions {
   fuseId: string;
   amperage: number | null;
-  devices: Device[];
+  sockets: SocketWithDevices[];
 }
 
 export function calculateLoad(options: LoadCalculatorOptions): LoadCalculation {
+  const { fuseId, amperage, sockets } = options;
+
+  // Sum wattage from all devices across all sockets
+  const totalWattage = sockets.reduce((sum, socket) => {
+    return sum + socket.devices.reduce((socketSum, device) => {
+      return socketSum + (device.estimatedWattage ?? 0);
+    }, 0);
+  }, 0);
+
+  const maxWattage = amperage ? amperage * VOLTAGE : 0;
+  const loadPercentage = maxWattage > 0 ? (totalWattage / maxWattage) * 100 : 0;
+
+  let status: LoadCalculation['status'];
+  if (loadPercentage < 70) {
+    status = 'safe';
+  } else if (loadPercentage < 90) {
+    status = 'warning';
+  } else {
+    status = 'danger';
+  }
+
+  return {
+    fuseId,
+    totalWattage,
+    maxWattage,
+    loadPercentage,
+    status,
+  };
+}
+
+// Helper to calculate load from a flat array of devices (for backward compatibility)
+export interface LegacyLoadCalculatorOptions {
+  fuseId: string;
+  amperage: number | null;
+  devices: Device[];
+}
+
+export function calculateLoadFromDevices(options: LegacyLoadCalculatorOptions): LoadCalculation {
   const { fuseId, amperage, devices } = options;
 
   const totalWattage = devices.reduce((sum, device) => {

@@ -1,5 +1,5 @@
 import type {
-  FuseWithDevices,
+  FuseWithSockets,
   CreateFuseInput,
   UpdateFuseInput,
 } from '@fusemapper/shared';
@@ -7,10 +7,13 @@ import { post, patch, del } from './client';
 
 export const fusesApi = {
   create: (panelId: string, data: Omit<CreateFuseInput, 'panelId'>) =>
-    post<FuseWithDevices>(`/panels/${panelId}/fuses`, data),
+    post<FuseWithSockets>(`/panels/${panelId}/fuses`, data),
 
   update: (id: string, data: UpdateFuseInput) =>
-    patch<FuseWithDevices>(`/fuses/${id}`, data),
+    patch<FuseWithSockets>(`/fuses/${id}`, data),
+
+  reorder: (id: string, sortOrder: number) =>
+    patch<FuseWithSockets>(`/fuses/${id}/reorder`, { sortOrder }),
 
   delete: (id: string) => del<void>(`/fuses/${id}`),
 };

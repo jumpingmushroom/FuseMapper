@@ -58,25 +58,25 @@ export function DndProvider({ children, panelId }: DndProviderProps) {
     if (!over) return;
 
     const overData = over.data.current;
-    if (!overData || overData.type !== 'fuse') return;
+    if (!overData || overData.type !== 'socket') return;
 
-    const fuseId = overData.fuseId as string;
+    const socketId = overData.socketId as string;
     const activeData = active.data.current;
 
     if (activeData?.type === 'device' && activeData.device) {
       // Move existing device
       const device = activeData.device as DeviceWithRoom;
-      if (device.fuseId !== fuseId) {
+      if (device.socketId !== socketId) {
         await moveDevice.mutateAsync({
           id: device.id,
-          data: { fuseId },
+          data: { socketId },
         });
       }
     } else if (activeData?.type === 'preset' && activeData.preset) {
       // Create new device from preset
       const preset = activeData.preset as DevicePreset;
       await createDevice.mutateAsync({
-        fuseId,
+        socketId,
         name: preset.name,
         icon: preset.icon,
         category: preset.category,

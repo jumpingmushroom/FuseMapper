@@ -12,12 +12,18 @@ router.get('/export', async (_req, res, next) => {
       include: {
         fuses: {
           include: {
-            devices: {
-              include: { room: true },
+            sockets: {
+              include: {
+                devices: {
+                  include: { room: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+                room: true,
+              },
               orderBy: { sortOrder: 'asc' },
             },
           },
-          orderBy: [{ row: 'asc' }, { slotStart: 'asc' }],
+          orderBy: { sortOrder: 'asc' },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -28,17 +34,17 @@ router.get('/export', async (_req, res, next) => {
     });
 
     const unassignedDevices = await prisma.device.findMany({
-      where: { fuseId: null },
+      where: { socketId: null },
       include: { room: true },
       orderBy: { name: 'asc' },
     });
 
     const exportData: ExportData = {
-      version: '1.0.0',
+      version: '2.0.0',
       exportedAt: new Date().toISOString(),
-      panels: panels as ExportData['panels'],
-      rooms: rooms as ExportData['rooms'],
-      unassignedDevices: unassignedDevices as ExportData['unassignedDevices'],
+      panels: panels as unknown as ExportData['panels'],
+      rooms: rooms as unknown as ExportData['rooms'],
+      unassignedDevices: unassignedDevices as unknown as ExportData['unassignedDevices'],
     };
 
     res.setHeader('Content-Type', 'application/json');
@@ -49,7 +55,7 @@ router.get('/export', async (_req, res, next) => {
   }
 });
 
-// Import validation schema
+// Import validation schema for new structure
 const importSchema = z.object({
   version: z.string(),
   exportedAt: z.string(),
@@ -57,14 +63,12 @@ const importSchema = z.object({
     id: z.string().optional(),
     name: z.string(),
     location: z.string().nullable().optional(),
-    rows: z.number(),
-    slotsPerRow: z.number(),
+    mainBreakerAmperage: z.number().nullable().optional(),
+    mainBreakerType: z.string().nullable().optional(),
     fuses: z.array(z.object({
       id: z.string().optional(),
       label: z.string().nullable().optional(),
-      row: z.number(),
-      slotStart: z.number(),
-      slotWidth: z.number(),
+      sortOrder: z.number().optional(),
       poles: z.number(),
       amperage: z.number().nullable().optional(),
       type: z.string(),
@@ -75,15 +79,22 @@ const importSchema = z.object({
       color: z.string().nullable().optional(),
       notes: z.string().nullable().optional(),
       deviceUrl: z.string().nullable().optional(),
-      devices: z.array(z.object({
+      sockets: z.array(z.object({
         id: z.string().optional(),
-        name: z.string(),
-        icon: z.string(),
-        category: z.string(),
+        label: z.string().nullable().optional(),
+        sortOrder: z.number().optional(),
         roomId: z.string().nullable().optional(),
-        estimatedWattage: z.number().nullable().optional(),
         notes: z.string().nullable().optional(),
-        sortOrder: z.number(),
+        devices: z.array(z.object({
+          id: z.string().optional(),
+          name: z.string(),
+          icon: z.string(),
+          category: z.string(),
+          roomId: z.string().nullable().optional(),
+          estimatedWattage: z.number().nullable().optional(),
+          notes: z.string().nullable().optional(),
+          sortOrder: z.number(),
+        })).optional(),
       })).optional(),
     })).optional(),
   })),
@@ -112,6 +123,7 @@ router.post('/import', async (req, res, next) => {
       success: true,
       panelsImported: 0,
       fusesImported: 0,
+      socketsImported: 0,
       devicesImported: 0,
       roomsImported: 0,
       errors: [],
@@ -138,15 +150,15 @@ router.post('/import', async (req, res, next) => {
       }
     }
 
-    // Import panels with fuses and devices
+    // Import panels with fuses, sockets, and devices
     for (const panel of data.panels) {
       try {
         const newPanel = await prisma.panel.create({
           data: {
             name: panel.name,
             location: panel.location,
-            rows: panel.rows,
-            slotsPerRow: panel.slotsPerRow,
+            mainBreakerAmperage: panel.mainBreakerAmperage,
+            mainBreakerType: panel.mainBreakerType,
           },
         });
         result.panelsImported++;
@@ -158,9 +170,7 @@ router.post('/import', async (req, res, next) => {
               data: {
                 panelId: newPanel.id,
                 label: fuse.label,
-                row: fuse.row,
-                slotStart: fuse.slotStart,
-                slotWidth: fuse.slotWidth,
+                sortOrder: fuse.sortOrder ?? 0,
                 poles: fuse.poles,
                 amperage: fuse.amperage,
                 type: fuse.type,
@@ -175,24 +185,42 @@ router.post('/import', async (req, res, next) => {
             });
             result.fusesImported++;
 
-            // Import devices on this fuse
-            for (const device of fuse.devices ?? []) {
+            // Import sockets
+            for (const socket of fuse.sockets ?? []) {
               try {
-                await prisma.device.create({
+                const newSocket = await prisma.socket.create({
                   data: {
                     fuseId: newFuse.id,
-                    name: device.name,
-                    icon: device.icon,
-                    category: device.category,
-                    roomId: device.roomId ? roomIdMap.get(device.roomId) ?? null : null,
-                    estimatedWattage: device.estimatedWattage,
-                    notes: device.notes,
-                    sortOrder: device.sortOrder,
+                    label: socket.label,
+                    sortOrder: socket.sortOrder ?? 0,
+                    roomId: socket.roomId ? roomIdMap.get(socket.roomId) ?? null : null,
+                    notes: socket.notes,
                   },
                 });
-                result.devicesImported++;
+                result.socketsImported++;
+
+                // Import devices on this socket
+                for (const device of socket.devices ?? []) {
+                  try {
+                    await prisma.device.create({
+                      data: {
+                        socketId: newSocket.id,
+                        name: device.name,
+                        icon: device.icon,
+                        category: device.category,
+                        roomId: device.roomId ? roomIdMap.get(device.roomId) ?? null : null,
+                        estimatedWattage: device.estimatedWattage,
+                        notes: device.notes,
+                        sortOrder: device.sortOrder,
+                      },
+                    });
+                    result.devicesImported++;
+                  } catch (error) {
+                    result.errors.push(`Failed to import device "${device.name}": ${error}`);
+                  }
+                }
               } catch (error) {
-                result.errors.push(`Failed to import device "${device.name}": ${error}`);
+                result.errors.push(`Failed to import socket "${socket.label}": ${error}`);
               }
             }
           } catch (error) {
@@ -209,7 +237,7 @@ router.post('/import', async (req, res, next) => {
       try {
         await prisma.device.create({
           data: {
-            fuseId: null,
+            socketId: null,
             name: device.name,
             icon: device.icon,
             category: device.category,

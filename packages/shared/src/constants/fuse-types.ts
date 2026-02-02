@@ -68,6 +68,5 @@ export const DEFAULT_FUSE_VALUES = {
   curveType: 'C' as CurveType,
   amperage: 16,
   poles: 1,
-  slotWidth: 1,
   isActive: true,
 };

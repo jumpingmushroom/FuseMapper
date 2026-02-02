@@ -10,12 +10,12 @@ import { panelKeys } from './usePanels';
 export const deviceKeys = {
   all: ['devices'] as const,
   lists: () => [...deviceKeys.all, 'list'] as const,
-  list: (options?: { fuseId?: string; unassigned?: boolean }) =>
+  list: (options?: { socketId?: string; unassigned?: boolean }) =>
     [...deviceKeys.lists(), options] as const,
   unassigned: () => [...deviceKeys.lists(), { unassigned: true }] as const,
 };
 
-export function useDevices(options?: { fuseId?: string; unassigned?: boolean }) {
+export function useDevices(options?: { socketId?: string; unassigned?: boolean }) {
   return useQuery({
     queryKey: deviceKeys.list(options),
     queryFn: () => devicesApi.list(options),

@@ -10,10 +10,10 @@ const curveTypeEnum = z.enum(['B', 'C', 'D']).nullable();
 
 const createFuseSchema = z.object({
   panelId: z.string(),
+  rowId: z.string().optional(),
   label: z.string().max(100).optional(),
-  row: z.number().int().min(0),
-  slotStart: z.number().int().min(0),
-  slotWidth: z.number().int().min(1).max(6).default(1),
+  sortOrder: z.number().int().min(0).optional(),
+  slotNumber: z.number().int().min(1).max(999).optional(),
   poles: z.number().int().min(1).max(4).default(1),
   amperage: z.number().int().min(1).max(125).optional(),
   type: fuseTypeEnum.default('MCB'),
@@ -28,59 +28,52 @@ const createFuseSchema = z.object({
 
 const updateFuseSchema = createFuseSchema.partial().omit({ panelId: true });
 
-// POST /api/panels/:panelId/fuses - Create fuse (nested route)
-router.post('/panels/:panelId/fuses', async (req, res, next) => {
-  try {
-    const data = createFuseSchema.parse({
-      ...req.body,
-      panelId: req.params.panelId,
-    });
+// Helper function to validate row capacity
+async function validateRowCapacity(rowId: string, excludeFuseId?: string) {
+  const row = await prisma.row.findUnique({
+    where: { id: rowId },
+    include: { _count: { select: { fuses: true } } },
+  });
 
-    // Check for overlapping fuses
-    const existingFuses = await prisma.fuse.findMany({
-      where: {
-        panelId: data.panelId,
-        row: data.row,
-      },
-    });
-
-    const newSlotEnd = data.slotStart + data.slotWidth - 1;
-    for (const fuse of existingFuses) {
-      const existingSlotEnd = fuse.slotStart + fuse.slotWidth - 1;
-      if (
-        data.slotStart <= existingSlotEnd &&
-        newSlotEnd >= fuse.slotStart
-      ) {
-        throw new ApiError(400, 'Fuse overlaps with existing fuse');
-      }
-    }
-
-    const fuse = await prisma.fuse.create({
-      data,
-      include: {
-        devices: {
-          include: { room: true },
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
-    });
-    res.status(201).json({ data: fuse, success: true });
-  } catch (error) {
-    next(error);
+  if (!row) {
+    throw new ApiError(404, 'Row not found');
   }
-});
+
+  // Count fuses in row (excluding the fuse being updated if applicable)
+  const fuseCount = excludeFuseId
+    ? await prisma.fuse.count({
+        where: { rowId, id: { not: excludeFuseId } },
+      })
+    : row._count.fuses;
+
+  if (fuseCount >= row.maxFuses) {
+    throw new ApiError(
+      400,
+      `Row is full (${row.maxFuses}/${row.maxFuses} fuses). Either increase the row limit or choose a different row.`
+    );
+  }
+}
+
+// Standard includes for fuse queries
+const fuseIncludes = {
+  sockets: {
+    include: {
+      devices: {
+        include: { room: true },
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      room: true,
+    },
+    orderBy: { sortOrder: 'asc' as const },
+  },
+};
 
 // GET /api/fuses/:id - Get single fuse
 router.get('/:id', async (req, res, next) => {
   try {
     const fuse = await prisma.fuse.findUnique({
       where: { id: req.params.id },
-      include: {
-        devices: {
-          include: { room: true },
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
+      include: fuseIncludes,
     });
 
     if (!fuse) {
@@ -98,46 +91,31 @@ router.patch('/:id', async (req, res, next) => {
   try {
     const data = updateFuseSchema.parse(req.body);
 
-    // If position is changing, check for overlaps
-    if (data.row !== undefined || data.slotStart !== undefined || data.slotWidth !== undefined) {
-      const existing = await prisma.fuse.findUnique({
-        where: { id: req.params.id },
-      });
-
-      if (!existing) {
-        throw new ApiError(404, 'Fuse not found');
-      }
-
-      const newRow = data.row ?? existing.row;
-      const newSlotStart = data.slotStart ?? existing.slotStart;
-      const newSlotWidth = data.slotWidth ?? existing.slotWidth;
-      const newSlotEnd = newSlotStart + newSlotWidth - 1;
-
-      const otherFuses = await prisma.fuse.findMany({
-        where: {
-          panelId: existing.panelId,
-          row: newRow,
-          id: { not: req.params.id },
-        },
-      });
-
-      for (const fuse of otherFuses) {
-        const existingSlotEnd = fuse.slotStart + fuse.slotWidth - 1;
-        if (newSlotStart <= existingSlotEnd && newSlotEnd >= fuse.slotStart) {
-          throw new ApiError(400, 'Fuse overlaps with existing fuse');
-        }
-      }
+    // If moving to a new row, validate row capacity
+    if (data.rowId) {
+      await validateRowCapacity(data.rowId, req.params.id);
     }
 
     const fuse = await prisma.fuse.update({
       where: { id: req.params.id },
       data,
-      include: {
-        devices: {
-          include: { room: true },
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
+      include: fuseIncludes,
+    });
+    res.json({ data: fuse, success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/fuses/:id/reorder - Reorder fuse
+router.patch('/:id/reorder', async (req, res, next) => {
+  try {
+    const { sortOrder } = z.object({ sortOrder: z.number().int().min(0) }).parse(req.body);
+
+    const fuse = await prisma.fuse.update({
+      where: { id: req.params.id },
+      data: { sortOrder },
+      include: fuseIncludes,
     });
     res.json({ data: fuse, success: true });
   } catch (error) {
@@ -152,6 +130,56 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id },
     });
     res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/fuses/:fuseId/sockets - Create socket in chain
+const createSocketSchema = z.object({
+  fuseId: z.string(),
+  label: z.string().max(100).optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  roomId: z.string().optional(),
+  notes: z.string().max(500).optional(),
+});
+
+router.post('/:fuseId/sockets', async (req, res, next) => {
+  try {
+    const data = createSocketSchema.parse({
+      ...req.body,
+      fuseId: req.params.fuseId,
+    });
+
+    // Verify fuse exists
+    const fuse = await prisma.fuse.findUnique({
+      where: { id: data.fuseId },
+    });
+
+    if (!fuse) {
+      throw new ApiError(404, 'Fuse not found');
+    }
+
+    // Auto-increment sortOrder if not provided
+    if (data.sortOrder === undefined) {
+      const maxOrder = await prisma.socket.aggregate({
+        where: { fuseId: data.fuseId },
+        _max: { sortOrder: true },
+      });
+      data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+    }
+
+    const socket = await prisma.socket.create({
+      data,
+      include: {
+        devices: {
+          include: { room: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+        room: true,
+      },
+    });
+    res.status(201).json({ data: socket, success: true });
   } catch (error) {
     next(error);
   }

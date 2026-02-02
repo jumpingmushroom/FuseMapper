@@ -15,7 +15,7 @@ const iconEnum = z.enum([
 ]);
 
 const createDeviceSchema = z.object({
-  fuseId: z.string().optional(),
+  socketId: z.string().optional(),
   name: z.string().min(1).max(100),
   icon: iconEnum.default('generic'),
   category: categoryEnum.default('other'),
@@ -28,27 +28,27 @@ const createDeviceSchema = z.object({
 const updateDeviceSchema = createDeviceSchema.partial();
 
 const moveDeviceSchema = z.object({
-  fuseId: z.string().nullable(),
+  socketId: z.string().nullable(),
   sortOrder: z.number().int().optional(),
 });
 
 // GET /api/devices - List all devices
 router.get('/', async (req, res, next) => {
   try {
-    const { fuseId, unassigned } = req.query;
+    const { socketId, unassigned } = req.query;
 
     const where: Record<string, unknown> = {};
-    if (fuseId) {
-      where.fuseId = fuseId as string;
+    if (socketId) {
+      where.socketId = socketId as string;
     }
     if (unassigned === 'true') {
-      where.fuseId = null;
+      where.socketId = null;
     }
 
     const devices = await prisma.device.findMany({
       where,
       include: { room: true },
-      orderBy: [{ fuseId: 'asc' }, { sortOrder: 'asc' }],
+      orderBy: [{ socketId: 'asc' }, { sortOrder: 'asc' }],
     });
     res.json({ data: devices, success: true });
   } catch (error) {
@@ -79,10 +79,10 @@ router.post('/', async (req, res, next) => {
   try {
     const data = createDeviceSchema.parse(req.body);
 
-    // Get max sortOrder for the target fuse
-    if (data.fuseId && data.sortOrder === 0) {
+    // Get max sortOrder for the target socket
+    if (data.socketId && data.sortOrder === 0) {
       const maxOrder = await prisma.device.aggregate({
-        where: { fuseId: data.fuseId },
+        where: { socketId: data.socketId },
         _max: { sortOrder: true },
       });
       data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
@@ -113,17 +113,17 @@ router.patch('/:id', async (req, res, next) => {
   }
 });
 
-// PATCH /api/devices/:id/move - Move device to different fuse
+// PATCH /api/devices/:id/move - Move device to different socket
 router.patch('/:id/move', async (req, res, next) => {
   try {
-    const { fuseId, sortOrder } = moveDeviceSchema.parse(req.body);
+    const { socketId, sortOrder } = moveDeviceSchema.parse(req.body);
 
     let newSortOrder = sortOrder;
 
     // If sortOrder not provided, put at end
-    if (newSortOrder === undefined && fuseId) {
+    if (newSortOrder === undefined && socketId) {
       const maxOrder = await prisma.device.aggregate({
-        where: { fuseId },
+        where: { socketId },
         _max: { sortOrder: true },
       });
       newSortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
@@ -133,7 +133,7 @@ router.patch('/:id/move', async (req, res, next) => {
 
     const device = await prisma.device.update({
       where: { id: req.params.id },
-      data: { fuseId, sortOrder: newSortOrder },
+      data: { socketId, sortOrder: newSortOrder },
       include: { room: true },
     });
     res.json({ data: device, success: true });

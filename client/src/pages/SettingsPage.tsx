@@ -48,6 +48,7 @@ export function SettingsPage() {
         success: false,
         panelsImported: 0,
         fusesImported: 0,
+        socketsImported: 0,
         devicesImported: 0,
         roomsImported: 0,
         errors: [error instanceof Error ? error.message : 'Import failed'],
@@ -136,6 +137,7 @@ export function SettingsPage() {
                     <ul className="space-y-1 text-green-700">
                       <li>Panels imported: {importResult.panelsImported}</li>
                       <li>Fuses imported: {importResult.fusesImported}</li>
+                      <li>Sockets imported: {importResult.socketsImported}</li>
                       <li>Devices imported: {importResult.devicesImported}</li>
                       <li>Rooms imported: {importResult.roomsImported}</li>
                     </ul>

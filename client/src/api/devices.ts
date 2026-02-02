@@ -7,9 +7,9 @@ import type {
 import { get, post, patch, del } from './client';
 
 export const devicesApi = {
-  list: (options?: { fuseId?: string; unassigned?: boolean }) => {
+  list: (options?: { socketId?: string; unassigned?: boolean }) => {
     const params = new URLSearchParams();
-    if (options?.fuseId) params.set('fuseId', options.fuseId);
+    if (options?.socketId) params.set('socketId', options.socketId);
     if (options?.unassigned) params.set('unassigned', 'true');
     const query = params.toString();
     return get<DeviceWithRoom[]>(`/devices${query ? `?${query}` : ''}`);

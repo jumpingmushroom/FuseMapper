@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Fuse, FuseType, CurveType, CreateFuseInput } from '@fusemapper/shared';
 import { FUSE_TYPES, CURVE_TYPES, COMMON_AMPERAGES, DEFAULT_FUSE_VALUES } from '@fusemapper/shared';
 import { Modal, Button, Input, Select } from '@/components/ui';
+import { usePanel } from '@/hooks';
 import { Trash2 } from 'lucide-react';
 
 type FuseFormData = Omit<CreateFuseInput, 'panelId'>;
@@ -14,7 +15,7 @@ interface FuseModalProps {
   loading?: boolean;
   deleteLoading?: boolean;
   fuse?: Fuse;
-  defaultValues?: { row: number; slotStart: number };
+  panelId: string;
 }
 
 export function FuseModal({
@@ -25,15 +26,17 @@ export function FuseModal({
   loading,
   deleteLoading,
   fuse,
-  defaultValues,
+  panelId,
 }: FuseModalProps) {
+  const { data: panel } = usePanel(panelId);
   const [formData, setFormData] = useState({
     label: '',
+    rowId: undefined as string | undefined,
+    slotNumber: undefined as number | undefined,
     type: DEFAULT_FUSE_VALUES.type as FuseType,
     amperage: DEFAULT_FUSE_VALUES.amperage,
     curveType: DEFAULT_FUSE_VALUES.curveType as CurveType,
     poles: DEFAULT_FUSE_VALUES.poles,
-    slotWidth: DEFAULT_FUSE_VALUES.slotWidth,
     manufacturer: '',
     model: '',
     isActive: DEFAULT_FUSE_VALUES.isActive,
@@ -45,11 +48,12 @@ export function FuseModal({
     if (fuse) {
       setFormData({
         label: fuse.label || '',
+        rowId: fuse.rowId ?? undefined,
+        slotNumber: fuse.slotNumber ?? undefined,
         type: fuse.type as FuseType,
         amperage: fuse.amperage || DEFAULT_FUSE_VALUES.amperage,
         curveType: fuse.curveType as CurveType,
         poles: fuse.poles,
-        slotWidth: fuse.slotWidth,
         manufacturer: fuse.manufacturer || '',
         model: fuse.model || '',
         isActive: fuse.isActive,
@@ -59,11 +63,12 @@ export function FuseModal({
     } else {
       setFormData({
         label: '',
+        rowId: undefined,
+        slotNumber: undefined,
         type: DEFAULT_FUSE_VALUES.type as FuseType,
         amperage: DEFAULT_FUSE_VALUES.amperage,
         curveType: DEFAULT_FUSE_VALUES.curveType as CurveType,
         poles: DEFAULT_FUSE_VALUES.poles,
-        slotWidth: DEFAULT_FUSE_VALUES.slotWidth,
         manufacturer: '',
         model: '',
         isActive: DEFAULT_FUSE_VALUES.isActive,
@@ -77,30 +82,34 @@ export function FuseModal({
     e.preventDefault();
     const data: FuseFormData = {
       label: formData.label || undefined,
+      rowId: formData.rowId,
+      slotNumber: formData.slotNumber,
       type: formData.type,
       amperage: formData.amperage,
       curveType: formData.curveType,
       poles: formData.poles,
-      slotWidth: formData.slotWidth,
       manufacturer: formData.manufacturer || undefined,
       model: formData.model || undefined,
       isActive: formData.isActive,
       notes: formData.notes || undefined,
       deviceUrl: formData.deviceUrl || undefined,
-      row: defaultValues?.row ?? fuse?.row ?? 0,
-      slotStart: defaultValues?.slotStart ?? fuse?.slotStart ?? 0,
     };
     await onSubmit(data);
   };
 
-  const handleTypeChange = (type: FuseType) => {
-    const typeInfo = FUSE_TYPES.find((t) => t.value === type);
-    setFormData({
-      ...formData,
-      type,
-      slotWidth: typeInfo?.defaultSlotWidth || 1,
-    });
-  };
+  // Get available rows with capacity info
+  const availableRows = panel?.rows?.map(row => {
+    const fuseCount = row.fuses?.length || 0;
+    const isFull = fuseCount >= row.maxFuses;
+    // If editing existing fuse in this row, it has space
+    const hasSpace = !isFull || (fuse?.rowId === row.id);
+    return {
+      ...row,
+      fuseCount,
+      isFull,
+      hasSpace,
+    };
+  }) || [];
 
   return (
     <Modal
@@ -110,18 +119,45 @@ export function FuseModal({
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Label"
-          placeholder="Kitchen Lights, Bathroom RCBO, etc."
-          value={formData.label}
-          onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2">
+            <Input
+              label="Label"
+              placeholder="Kitchen Lights, Bathroom RCBO, etc."
+              value={formData.label}
+              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+            />
+          </div>
+          <Input
+            label="Slot Number"
+            type="number"
+            placeholder="1-999"
+            min="1"
+            max="999"
+            value={formData.slotNumber ?? ''}
+            onChange={(e) => setFormData({ ...formData, slotNumber: e.target.value ? parseInt(e.target.value) : undefined })}
+          />
+        </div>
+
+        <Select
+          label="Assign to Row (optional)"
+          value={formData.rowId ?? ''}
+          onChange={(e) => setFormData({ ...formData, rowId: e.target.value || undefined })}
+          options={[
+            { value: '', label: 'Unassigned' },
+            ...availableRows.map((row) => ({
+              value: row.id,
+              label: `${row.label || `Row ${row.position + 1}`} (${row.fuseCount}/${row.maxFuses} fuses)${!row.hasSpace ? ' - FULL' : ''}`,
+              disabled: !row.hasSpace,
+            })),
+          ]}
         />
 
         <div className="grid grid-cols-2 gap-4">
           <Select
             label="Type"
             value={formData.type}
-            onChange={(e) => handleTypeChange(e.target.value as FuseType)}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value as FuseType })}
             options={FUSE_TYPES.map((t) => ({ value: t.value, label: `${t.label} - ${t.description}` }))}
           />
           <Select
@@ -132,7 +168,7 @@ export function FuseModal({
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Select
             label="Curve Type"
             value={formData.curveType || ''}
@@ -147,12 +183,6 @@ export function FuseModal({
             value={formData.poles}
             onChange={(e) => setFormData({ ...formData, poles: parseInt(e.target.value) })}
             options={[1, 2, 3, 4].map((p) => ({ value: p, label: `${p}-pole` }))}
-          />
-          <Select
-            label="Slot Width"
-            value={formData.slotWidth}
-            onChange={(e) => setFormData({ ...formData, slotWidth: parseInt(e.target.value) })}
-            options={[1, 2, 3, 4, 5, 6].map((w) => ({ value: w, label: `${w} slot${w > 1 ? 's' : ''}` }))}
           />
         </div>
 

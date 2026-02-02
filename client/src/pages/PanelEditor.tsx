@@ -1,23 +1,61 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Settings, Printer } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { usePanel } from '@/hooks';
-import { Button, Card, CardBody } from '@/components/ui';
-import { PanelGrid } from '@/components/panel/PanelGrid';
+import { usePanel, useUpdatePanel } from '@/hooks';
+import { Button, Card, CardBody, Modal, Input, Select } from '@/components/ui';
+import { PanelTree } from '@/components/panel/PanelTree';
+import { PrintableCircuitList } from '@/components/panel/PrintableCircuitList';
 import { DevicePalette } from '@/components/device/DevicePalette';
 import { DndProvider } from '@/components/dnd/DndProvider';
+import { COMMON_AMPERAGES } from '@fusemapper/shared';
 
 export function PanelEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: panel, isLoading, error } = usePanel(id!);
+  const updatePanel = useUpdatePanel();
   const printRef = useRef<HTMLDivElement>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    location: '',
+    mainBreakerAmperage: 63,
+    mainBreakerType: 'MAIN',
+  });
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: panel?.name || 'Panel',
   });
+
+  const handleOpenSettings = () => {
+    if (panel) {
+      setFormData({
+        name: panel.name,
+        location: panel.location || '',
+        mainBreakerAmperage: panel.mainBreakerAmperage || 63,
+        mainBreakerType: panel.mainBreakerType || 'MAIN',
+      });
+      setShowSettingsModal(true);
+    }
+  };
+
+  const handleUpdateSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!panel) return;
+
+    await updatePanel.mutateAsync({
+      id: panel.id,
+      data: {
+        name: formData.name,
+        location: formData.location || undefined,
+        mainBreakerAmperage: formData.mainBreakerAmperage,
+        mainBreakerType: formData.mainBreakerType,
+      },
+    });
+    setShowSettingsModal(false);
+  };
 
   if (isLoading) {
     return (
@@ -62,7 +100,7 @@ export function PanelEditor() {
               <Printer size={18} />
               Print
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleOpenSettings}>
               <Settings size={18} />
             </Button>
           </div>
@@ -70,13 +108,15 @@ export function PanelEditor() {
 
         {/* Editor Layout */}
         <div className="flex gap-6">
-          {/* Panel Grid */}
-          <div className="flex-1" ref={printRef}>
-            <Card>
-              <CardBody className="p-4">
-                <PanelGrid panel={panel} />
+          {/* Panel Tree */}
+          <div className="flex-1 overflow-x-auto" ref={printRef}>
+            <Card className="no-print">
+              <CardBody className="p-6">
+                <PanelTree panel={panel as any} />
               </CardBody>
             </Card>
+            {/* Printable Circuit List (hidden on screen, shown when printing) */}
+            <PrintableCircuitList panel={panel as any} />
           </div>
 
           {/* Device Palette Sidebar */}
@@ -85,6 +125,55 @@ export function PanelEditor() {
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      <Modal
+        open={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        title="Panel Settings"
+      >
+        <form onSubmit={handleUpdateSettings} className="space-y-4">
+          <Input
+            label="Panel Name"
+            placeholder="Main Panel"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+          <Input
+            label="Location"
+            placeholder="Garage, Basement, etc."
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Main Breaker Amperage"
+              value={formData.mainBreakerAmperage}
+              onChange={(e) => setFormData({ ...formData, mainBreakerAmperage: parseInt(e.target.value) })}
+              options={[...COMMON_AMPERAGES, 80, 100, 125].sort((a, b) => a - b).map((a) => ({ value: a, label: `${a}A` }))}
+            />
+            <Input
+              label="Main Breaker Type"
+              value={formData.mainBreakerType}
+              onChange={(e) => setFormData({ ...formData, mainBreakerType: e.target.value })}
+              placeholder="MAIN, MCB, etc."
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowSettingsModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={updatePanel.isPending}>
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </DndProvider>
   );
 }

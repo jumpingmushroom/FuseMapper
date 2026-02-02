@@ -7,7 +7,9 @@ import helmet from 'helmet';
 import { prisma } from './db.js';
 import { errorHandler } from './middleware/error-handler.js';
 import panelsRouter from './routes/panels.js';
+import rowsRouter from './routes/rows.js';
 import fusesRouter from './routes/fuses.js';
+import socketsRouter from './routes/sockets.js';
 import devicesRouter from './routes/devices.js';
 import roomsRouter from './routes/rooms.js';
 import exportRouter from './routes/export.js';
@@ -35,7 +37,9 @@ app.get('/api/health', (_req, res) => {
 
 // Routes
 app.use('/api/panels', panelsRouter);
-app.use('/api', fusesRouter); // For nested /panels/:panelId/fuses and /fuses/:id
+app.use('/api/rows', rowsRouter);
+app.use('/api/fuses', fusesRouter);
+app.use('/api/sockets', socketsRouter);
 app.use('/api/devices', devicesRouter);
 app.use('/api/rooms', roomsRouter);
 app.use('/api', exportRouter);

@@ -92,7 +92,7 @@ export function DeviceModal({ open, onClose, device, panelId }: DeviceModalProps
   const handleUnassign = async () => {
     await moveDevice.mutateAsync({
       id: device.id,
-      data: { fuseId: null },
+      data: { socketId: null },
     });
     onClose();
   };
@@ -165,7 +165,7 @@ export function DeviceModal({ open, onClose, device, panelId }: DeviceModalProps
             >
               Delete
             </Button>
-            {device.fuseId && (
+            {device.socketId && (
               <Button
                 type="button"
                 variant="secondary"

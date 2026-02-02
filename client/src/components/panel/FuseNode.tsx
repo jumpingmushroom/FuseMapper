@@ -1,35 +1,27 @@
 import { useState } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import type { FuseWithDevices, UpdateFuseInput } from '@fusemapper/shared';
-import { calculateLoad, getLoadStatusColor, formatWattage } from '@fusemapper/shared';
-import { FUSE_TYPE_COLORS } from '@fusemapper/shared';
+import type { FuseWithSockets, UpdateFuseInput } from '@fusemapper/shared';
+import { calculateLoad, getLoadStatusColor, formatWattage, FUSE_TYPE_COLORS } from '@fusemapper/shared';
 import { FuseModal } from './FuseModal';
-import { DeviceList } from '../device/DeviceList';
+import { SocketChain } from './SocketChain';
 import { useUpdateFuse, useDeleteFuse } from '@/hooks';
 
-interface FuseModuleProps {
-  fuse: FuseWithDevices;
+interface FuseNodeProps {
+  fuse: FuseWithSockets;
   panelId: string;
 }
 
-export function FuseModule({ fuse, panelId }: FuseModuleProps) {
+export function FuseNode({ fuse, panelId }: FuseNodeProps) {
   const updateFuse = useUpdateFuse(panelId);
   const deleteFuse = useDeleteFuse(panelId);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const { setNodeRef, isOver } = useDroppable({
-    id: `fuse-${fuse.id}`,
-    data: { type: 'fuse', fuseId: fuse.id },
-  });
-
   const load = calculateLoad({
     fuseId: fuse.id,
     amperage: fuse.amperage,
-    devices: fuse.devices,
+    sockets: fuse.sockets,
   });
 
   const typeColor = FUSE_TYPE_COLORS[fuse.type as keyof typeof FUSE_TYPE_COLORS] || '#6B7280';
-  const slotWidth = 48 * fuse.slotWidth + (fuse.slotWidth - 1) * 2; // 48px per slot + 2px gaps
 
   const handleUpdate = async (data: UpdateFuseInput) => {
     await updateFuse.mutateAsync({ id: fuse.id, data });
@@ -40,29 +32,40 @@ export function FuseModule({ fuse, panelId }: FuseModuleProps) {
     await deleteFuse.mutateAsync(fuse.id);
   };
 
+  // Count total devices across all sockets
+  const totalDevices = fuse.sockets.reduce((sum, socket) => sum + socket.devices.length, 0);
+
   return (
-    <>
+    <div className="flex flex-col items-center pt-4">
+      {/* Fuse Node */}
       <div
-        ref={setNodeRef}
-        style={{ width: slotWidth }}
-        className={`relative bg-white rounded shadow-sm cursor-pointer transition-all
-          ${isOver ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
+        className={`relative bg-white rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md border
           ${!fuse.isActive ? 'opacity-60' : ''}
         `}
+        style={{ width: '160px' }}
         onClick={() => setShowEditModal(true)}
       >
+        {/* Slot Number Badge */}
+        {fuse.slotNumber !== null && (
+          <div className="absolute -top-3 -right-3 z-10">
+            <div className="bg-blue-600 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shadow-md border-2 border-white">
+              {fuse.slotNumber}
+            </div>
+          </div>
+        )}
+
         {/* Type indicator bar */}
         <div
-          className="h-1 rounded-t"
+          className="h-1.5 rounded-t-lg"
           style={{ backgroundColor: typeColor }}
         />
 
         {/* Content */}
-        <div className="p-1">
+        <div className="p-2">
           {/* Type badge and amperage */}
-          <div className="flex items-center justify-between text-[10px] mb-0.5">
+          <div className="flex items-center justify-between text-xs mb-1">
             <span
-              className="px-1 rounded text-white font-medium"
+              className="px-1.5 py-0.5 rounded text-white font-medium"
               style={{ backgroundColor: typeColor }}
             >
               {fuse.type}
@@ -75,14 +78,14 @@ export function FuseModule({ fuse, panelId }: FuseModuleProps) {
           </div>
 
           {/* Label */}
-          <div className="text-xs font-medium text-gray-900 truncate min-h-[16px]">
+          <div className="text-sm font-medium text-gray-900 truncate">
             {fuse.label || 'Unlabeled'}
           </div>
 
           {/* Load indicator */}
-          {fuse.amperage && fuse.devices.length > 0 && (
-            <div className="mt-1">
-              <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+          {fuse.amperage && totalDevices > 0 && (
+            <div className="mt-2">
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full transition-all"
                   style={{
@@ -91,39 +94,23 @@ export function FuseModule({ fuse, panelId }: FuseModuleProps) {
                   }}
                 />
               </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">
+              <div className="text-[10px] text-gray-500 mt-0.5">
                 {formatWattage(load.totalWattage)} ({Math.round(load.loadPercentage)}%)
               </div>
             </div>
           )}
 
-          {/* Devices */}
-          {fuse.devices.length > 0 && (
-            <DeviceList
-              devices={fuse.devices}
-              panelId={panelId}
-              compact
-            />
-          )}
-        </div>
-
-        {/* Room color stripe (if any device has a room) */}
-        {fuse.devices.some((d) => d.room) && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 flex">
-            {fuse.devices
-              .filter((d) => d.room)
-              .slice(0, 3)
-              .map((d) => (
-                <div
-                  key={d.id}
-                  className="flex-1"
-                  style={{ backgroundColor: d.room?.color }}
-                />
-              ))}
+          {/* Socket/device count */}
+          <div className="text-[10px] text-gray-400 mt-1">
+            {fuse.sockets.length} socket{fuse.sockets.length !== 1 ? 's' : ''} · {totalDevices} device{totalDevices !== 1 ? 's' : ''}
           </div>
-        )}
+        </div>
       </div>
 
+      {/* Socket Chain */}
+      <SocketChain fuse={fuse} panelId={panelId} />
+
+      {/* Edit Modal */}
       <FuseModal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -132,7 +119,8 @@ export function FuseModule({ fuse, panelId }: FuseModuleProps) {
         loading={updateFuse.isPending}
         deleteLoading={deleteFuse.isPending}
         fuse={fuse}
+        panelId={panelId}
       />
-    </>
+    </div>
   );
 }
