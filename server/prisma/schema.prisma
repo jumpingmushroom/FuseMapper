@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Panel {
+  id          String   @id @default(cuid())
+  name        String
+  location    String?
+  rows        Int      @default(3)
+  slotsPerRow Int      @default(12) @map("slots_per_row")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  fuses Fuse[]
+
+  @@map("panels")
+}
+
+model Fuse {
+  id           String   @id @default(cuid())
+  panelId      String   @map("panel_id")
+  label        String?
+  row          Int
+  slotStart    Int      @map("slot_start")
+  slotWidth    Int      @default(1) @map("slot_width")
+  poles        Int      @default(1)
+  amperage     Int?
+  type         String   @default("MCB")
+  curveType    String?  @map("curve_type")
+  manufacturer String?
+  model        String?
+  isActive     Boolean  @default(true) @map("is_active")
+  color        String?
+  notes        String?
+  deviceUrl    String?  @map("device_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  panel   Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  devices Device[]
+
+  @@map("fuses")
+}
+
+model Device {
+  id               String   @id @default(cuid())
+  fuseId           String?  @map("fuse_id")
+  name             String
+  icon             String   @default("generic")
+  category         String   @default("other")
+  roomId           String?  @map("room_id")
+  estimatedWattage Int?     @map("estimated_wattage")
+  notes            String?
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  fuse Fuse? @relation(fields: [fuseId], references: [id], onDelete: SetNull)
+  room Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  @@map("devices")
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6B7280")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  devices Device[]
+
+  @@map("rooms")
+}

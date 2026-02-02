@@ -1,0 +1,24 @@
+services:
+  fusemapper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fusemapper
+    restart: unless-stopped
+    ports:
+      - "3050:3000"
+    volumes:
+      - fusemapper-data:/app/server/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=file:/app/server/data/fusemapper.db
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  fusemapper-data:

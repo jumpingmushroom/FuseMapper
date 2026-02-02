@@ -1,0 +1,33 @@
+{
+  "name": "fusemapper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted web app for visually mapping Norwegian/European fuse/breaker panels",
+  "workspaces": [
+    "packages/shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w packages/shared && npm run build -w server && npm run build -w client",
+    "build:shared": "npm run build -w packages/shared",
+    "build:server": "npm run build -w server",
+    "build:client": "npm run build -w client",
+    "db:generate": "npm run db:generate -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:push": "npm run db:push -w server",
+    "db:studio": "npm run db:studio -w server",
+    "lint": "npm run lint -w client",
+    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w server && npm run typecheck -w client"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,24 @@
+services:
+  fusemapper:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: fusemapper-dev
+    ports:
+      - "3001:3001"
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/shared/node_modules
+      - /app/server/node_modules
+      - /app/client/node_modules
+      - fusemapper-data-dev:/app/server/data
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=file:/app/server/data/fusemapper.db
+      - CLIENT_URL=http://localhost:5173
+
+volumes:
+  fusemapper-data-dev:
