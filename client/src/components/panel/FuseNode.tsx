@@ -19,9 +19,13 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
   const deleteFuse = useDeleteFuse(panelId);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  // SPDs should not accept device drops (inline protection only)
+  const isSPD = fuse.type === 'SPD';
+
   const { setNodeRef, isOver } = useDroppable({
     id: `fuse-${fuse.id}`,
     data: { type: 'fuse', fuseId: fuse.id },
+    disabled: isSPD,
   });
 
   const load = calculateLoad({
@@ -93,7 +97,7 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
 
         {/* Content */}
         <div className="p-2">
-          {/* Type badge, amperage, and sub-panel indicator */}
+          {/* Type badge, amperage/SPD specs, and sub-panel indicator */}
           <div className="flex items-center justify-between text-xs mb-1">
             <div className="flex items-center gap-1">
               <span
@@ -108,10 +112,18 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
                 </span>
               )}
             </div>
-            {fuse.amperage && (
-              <span className="font-bold text-gray-700">
-                {fuse.amperage}A{fuse.curveType ? fuse.curveType : ''}
+            {fuse.type === 'SPD' ? (
+              <span className="font-bold text-gray-700 text-[10px]">
+                {fuse.spdVoltageRating && `${fuse.spdVoltageRating}V`}
+                {fuse.spdVoltageRating && fuse.spdSurgeCurrentRating && ' · '}
+                {fuse.spdSurgeCurrentRating && `${fuse.spdSurgeCurrentRating}kA`}
               </span>
+            ) : (
+              fuse.amperage && (
+                <span className="font-bold text-gray-700">
+                  {fuse.amperage}A{fuse.curveType ? fuse.curveType : ''}
+                </span>
+              )
             )}
           </div>
 
@@ -120,6 +132,13 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
             {fuse.label || 'Unlabeled'}
           </div>
 
+          {/* SPD Class if present */}
+          {fuse.type === 'SPD' && fuse.spdClass && (
+            <div className="text-[10px] text-amber-600 font-medium mt-0.5">
+              {fuse.spdClass}
+            </div>
+          )}
+
           {/* Sub-panel name if present */}
           {hasSubPanel && (
             <div className="text-xs text-purple-600 font-medium truncate mt-0.5">
@@ -127,8 +146,8 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
             </div>
           )}
 
-          {/* Load indicator */}
-          {fuse.amperage && totalDevices > 0 && (
+          {/* Load indicator (not shown for SPDs) */}
+          {fuse.type !== 'SPD' && fuse.amperage && totalDevices > 0 && (
             <div className="mt-2">
               <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div

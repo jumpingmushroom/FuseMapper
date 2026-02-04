@@ -8,6 +8,7 @@ const router = Router();
 
 const fuseTypeEnum = z.enum(['MCB', 'RCBO', 'RCD', 'MAIN', 'SPD', 'DIN_DEVICE']);
 const curveTypeEnum = z.enum(['B', 'C', 'D']).nullable();
+const spdClassEnum = z.enum(['Type1', 'Type2', 'Type3']).nullable();
 
 const createFuseSchema = z.object({
   panelId: z.string(),
@@ -25,6 +26,10 @@ const createFuseSchema = z.object({
   color: z.string().max(20).optional(),
   notes: z.string().max(500).optional(),
   deviceUrl: z.string().url().max(500).optional(),
+  // SPD-specific fields
+  spdVoltageRating: z.number().int().min(100).max(1000).optional(),
+  spdSurgeCurrentRating: z.number().int().min(1).max(200).optional(),
+  spdClass: spdClassEnum.optional(),
 });
 
 const updateFuseSchema = createFuseSchema.partial().omit({ panelId: true });

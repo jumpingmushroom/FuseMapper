@@ -10,6 +10,14 @@ const createPanelSchema = z.object({
   location: z.string().max(200).optional(),
   mainBreakerAmperage: z.number().int().min(1).max(1000).optional(),
   mainBreakerType: z.string().max(50).optional(),
+  mainBreakerPoles: z.number().int().min(1).max(4).default(2),
+  mainBreakerCurveType: z.string().max(10).nullable().optional(),
+  mainBreakerManufacturer: z.string().max(100).nullable().optional(),
+  mainBreakerModel: z.string().max(100).nullable().optional(),
+  mainBreakerNotes: z.string().max(500).nullable().optional(),
+  mainBreakerDeviceUrl: z.union([z.string().url().max(500), z.literal('')]).nullable().optional(),
+  mainBreakerColor: z.string().max(20).nullable().optional(),
+  mainBreakerIsActive: z.boolean().optional(),
 });
 
 const updatePanelSchema = createPanelSchema.partial();
@@ -243,6 +251,7 @@ router.delete('/:id', async (req, res, next) => {
 // POST /api/panels/:panelId/fuses - Create fuse (nested route)
 const fuseTypeEnum = z.enum(['MCB', 'RCBO', 'RCD', 'MAIN', 'SPD', 'DIN_DEVICE']);
 const curveTypeEnum = z.enum(['B', 'C', 'D']).nullable();
+const spdClassEnum = z.enum(['Type1', 'Type2', 'Type3']).nullable();
 
 const createFuseSchema = z.object({
   panelId: z.string(),
@@ -260,6 +269,10 @@ const createFuseSchema = z.object({
   color: z.string().max(20).optional(),
   notes: z.string().max(500).optional(),
   deviceUrl: z.string().url().max(500).optional(),
+  // SPD-specific fields
+  spdVoltageRating: z.number().int().min(100).max(1000).optional(),
+  spdSurgeCurrentRating: z.number().int().min(1).max(200).optional(),
+  spdClass: spdClassEnum.optional(),
 });
 
 const fuseIncludes = {

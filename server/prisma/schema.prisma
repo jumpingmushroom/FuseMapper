@@ -15,8 +15,16 @@ model Panel {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Main breaker properties (panel-level)
-  mainBreakerAmperage Int?    @map("main_breaker_amperage")
-  mainBreakerType     String? @map("main_breaker_type")
+  mainBreakerAmperage     Int?     @map("main_breaker_amperage")
+  mainBreakerType         String?  @map("main_breaker_type")
+  mainBreakerPoles        Int      @default(2) @map("main_breaker_poles")
+  mainBreakerCurveType    String?  @map("main_breaker_curve_type")
+  mainBreakerManufacturer String?  @map("main_breaker_manufacturer")
+  mainBreakerModel        String?  @map("main_breaker_model")
+  mainBreakerNotes        String?  @map("main_breaker_notes")
+  mainBreakerDeviceUrl    String?  @map("main_breaker_device_url")
+  mainBreakerColor        String?  @map("main_breaker_color")
+  mainBreakerIsActive     Boolean  @default(true) @map("main_breaker_is_active")
 
   // Sub-panel properties
   parentFuseId String? @unique @map("parent_fuse_id")
@@ -62,6 +70,10 @@ model Fuse {
   color        String?
   notes        String?
   deviceUrl    String?  @map("device_url")
+  // SPD-specific fields
+  spdVoltageRating       Int?    @map("spd_voltage_rating")
+  spdSurgeCurrentRating  Int?    @map("spd_surge_current_rating")
+  spdClass               String? @map("spd_class")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

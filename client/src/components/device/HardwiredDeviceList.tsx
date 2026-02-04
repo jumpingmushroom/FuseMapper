@@ -13,7 +13,7 @@ export function HardwiredDeviceList({ devices, panelId, compact }: HardwiredDevi
   if (compact) {
     return (
       <div className="mt-1">
-        <div className="w-0.5 h-4 border-l-2 border-dashed border-orange-400 ml-2" />
+        <div className="w-0.5 h-4 border-l-2 border-dashed border-amber-400 ml-2" />
         <div className="space-y-0.5">
           {devices.slice(0, 3).map((device) => (
             <DeviceCard
@@ -35,8 +35,11 @@ export function HardwiredDeviceList({ devices, panelId, compact }: HardwiredDevi
   }
 
   return (
-    <div className="mt-2">
-      <div className="w-0.5 h-4 border-l-2 border-dashed border-orange-400 ml-4" />
+    <div className="mt-2 relative">
+      {/* Connector line from fuse */}
+      <div className="absolute top-0 left-[80px] w-0.5 h-4 bg-gradient-to-b from-amber-400 to-amber-300" />
+
+      {/* Devices */}
       <div className="space-y-2">
         {devices.map((device) => (
           <DeviceCard key={device.id} device={device} panelId={panelId} hardwired />

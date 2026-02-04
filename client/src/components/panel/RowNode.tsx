@@ -53,9 +53,26 @@ export function RowNode({ row, panelId, onNavigateToSubPanel, isCollapsed = fals
     setShowEditModal(false);
   };
 
-  const fuseCount = row.fuses.length;
-  const emptySlots = Math.max(0, row.maxFuses - fuseCount);
+  const totalCount = row.fuses.length;
+  const spdCount = row.fuses.filter(f => f.type === 'SPD').length;
+  const fuseCount = totalCount - spdCount;
+  const emptySlots = Math.max(0, row.maxFuses - totalCount);
   const totalWattage = calculateRowWattage(row);
+
+  // Build count display string
+  const countDisplay = () => {
+    const parts: string[] = [];
+    if (fuseCount > 0) {
+      parts.push(`${fuseCount} fuse${fuseCount !== 1 ? 's' : ''}`);
+    }
+    if (spdCount > 0) {
+      parts.push(`${spdCount} SPD${spdCount !== 1 ? 's' : ''}`);
+    }
+    if (parts.length === 0) {
+      return `0/${row.maxFuses} devices`;
+    }
+    return `${parts.join(', ')} (${totalCount}/${row.maxFuses})`;
+  };
 
   return (
     <div className="mb-6">
@@ -75,7 +92,7 @@ export function RowNode({ row, panelId, onNavigateToSubPanel, isCollapsed = fals
             {row.label || `Row ${row.position + 1}`}
           </h3>
           <span className="text-xs text-gray-500">
-            {fuseCount}/{row.maxFuses} fuses
+            {countDisplay()}
           </span>
 
           {/* Summary when collapsed */}
@@ -121,7 +138,7 @@ export function RowNode({ row, panelId, onNavigateToSubPanel, isCollapsed = fals
             ))}
 
             {/* No fuses message */}
-            {fuseCount === 0 && emptySlots === 0 && (
+            {totalCount === 0 && emptySlots === 0 && (
               <div className="w-full py-8 text-center text-gray-400 text-sm">
                 No capacity set. Edit row to set maximum fuses.
               </div>

@@ -70,9 +70,19 @@ export function SocketChain({ fuse, panelId }: SocketChainProps) {
   // Check if fuse already has a sub-panel
   const hasSubPanel = !!(fuse as any).subPanel;
 
+  // SPDs should not have sockets/devices attached (inline protection only)
+  const isSPD = fuse.type === 'SPD';
+
   return (
     <div className="flex flex-col items-center mt-2">
-      {fuse.sockets.map((socket, index) => (
+      {/* SPD info message */}
+      {isSPD && (
+        <div className="text-[10px] text-amber-600 mt-1 font-medium">
+          SPD - Inline protection (no loads)
+        </div>
+      )}
+
+      {!isSPD && fuse.sockets.map((socket, index) => (
         <div key={socket.id} className="flex flex-col items-center">
           {/* Vertical connector */}
           <div className="w-0.5 h-4 bg-gray-300" />
@@ -141,7 +151,7 @@ export function SocketChain({ fuse, panelId }: SocketChainProps) {
       ))}
 
       {/* Junction Boxes */}
-      {fuse.junctionBoxes && fuse.junctionBoxes.length > 0 && fuse.junctionBoxes.map((junctionBox) => (
+      {!isSPD && fuse.junctionBoxes && fuse.junctionBoxes.length > 0 && fuse.junctionBoxes.map((junctionBox) => (
         <div key={junctionBox.id} className="flex flex-col items-center">
           {/* Vertical connector */}
           <div className="w-0.5 h-4 bg-gray-300" />
@@ -152,7 +162,7 @@ export function SocketChain({ fuse, panelId }: SocketChainProps) {
       ))}
 
       {/* Add first socket button when chain is empty */}
-      {fuse.sockets.length === 0 && (fuse.junctionBoxes?.length === 0 || !fuse.junctionBoxes) && !hasSubPanel && (
+      {!isSPD && fuse.sockets.length === 0 && (fuse.junctionBoxes?.length === 0 || !fuse.junctionBoxes) && !hasSubPanel && (
         <div className="flex flex-col items-center">
           <div className="w-0.5 h-4 bg-gray-300" />
           <DropdownMenu.Root>

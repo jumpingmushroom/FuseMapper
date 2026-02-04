@@ -9,7 +9,7 @@ import { PanelBreadcrumbs } from '@/components/panel/PanelBreadcrumbs';
 import { PrintableCircuitList } from '@/components/panel/PrintableCircuitList';
 import { DevicePalette } from '@/components/device/DevicePalette';
 import { DndProvider } from '@/components/dnd/DndProvider';
-import { COMMON_AMPERAGES } from '@fusemapper/shared';
+import { COMMON_AMPERAGES, CURVE_TYPES } from '@fusemapper/shared';
 
 export function PanelEditor() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +25,14 @@ export function PanelEditor() {
     location: '',
     mainBreakerAmperage: 63,
     mainBreakerType: 'MAIN',
+    mainBreakerPoles: 2,
+    mainBreakerCurveType: '',
+    mainBreakerManufacturer: '',
+    mainBreakerModel: '',
+    mainBreakerNotes: '',
+    mainBreakerDeviceUrl: '',
+    mainBreakerColor: '',
+    mainBreakerIsActive: true,
   });
 
   // Update current panel when URL changes
@@ -56,6 +64,14 @@ export function PanelEditor() {
         location: panel.location || '',
         mainBreakerAmperage: panel.mainBreakerAmperage || 63,
         mainBreakerType: panel.mainBreakerType || 'MAIN',
+        mainBreakerPoles: panel.mainBreakerPoles || 2,
+        mainBreakerCurveType: panel.mainBreakerCurveType || '',
+        mainBreakerManufacturer: panel.mainBreakerManufacturer || '',
+        mainBreakerModel: panel.mainBreakerModel || '',
+        mainBreakerNotes: panel.mainBreakerNotes || '',
+        mainBreakerDeviceUrl: panel.mainBreakerDeviceUrl || '',
+        mainBreakerColor: panel.mainBreakerColor || '',
+        mainBreakerIsActive: panel.mainBreakerIsActive ?? true,
       });
       setShowSettingsModal(true);
     }
@@ -72,6 +88,14 @@ export function PanelEditor() {
         location: formData.location || undefined,
         mainBreakerAmperage: formData.mainBreakerAmperage,
         mainBreakerType: formData.mainBreakerType,
+        mainBreakerPoles: formData.mainBreakerPoles,
+        mainBreakerCurveType: formData.mainBreakerCurveType || null,
+        mainBreakerManufacturer: formData.mainBreakerManufacturer || null,
+        mainBreakerModel: formData.mainBreakerModel || null,
+        mainBreakerNotes: formData.mainBreakerNotes || null,
+        mainBreakerDeviceUrl: formData.mainBreakerDeviceUrl || null,
+        mainBreakerColor: formData.mainBreakerColor || null,
+        mainBreakerIsActive: formData.mainBreakerIsActive,
       },
     });
     setShowSettingsModal(false);
@@ -167,6 +191,7 @@ export function PanelEditor() {
         open={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         title="Panel Settings"
+        size="lg"
       >
         <form onSubmit={handleUpdateSettings} className="space-y-4">
           <Input
@@ -182,20 +207,99 @@ export function PanelEditor() {
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
           />
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Main Breaker Amperage"
-              value={formData.mainBreakerAmperage}
-              onChange={(e) => setFormData({ ...formData, mainBreakerAmperage: parseInt(e.target.value) })}
-              options={[...COMMON_AMPERAGES, 80, 100, 125].sort((a, b) => a - b).map((a) => ({ value: a, label: `${a}A` }))}
-            />
-            <Input
-              label="Main Breaker Type"
-              value={formData.mainBreakerType}
-              onChange={(e) => setFormData({ ...formData, mainBreakerType: e.target.value })}
-              placeholder="MAIN, MCB, etc."
-            />
+
+          <div className="border-t pt-4 mt-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Main Breaker Details</h3>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Type"
+                  value={formData.mainBreakerType}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerType: e.target.value })}
+                  placeholder="MAIN, MCB, etc."
+                />
+                <Select
+                  label="Amperage"
+                  value={formData.mainBreakerAmperage}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerAmperage: parseInt(e.target.value) })}
+                  options={[...COMMON_AMPERAGES, 80, 100, 125, 150, 175, 200, 225, 300, 400].sort((a, b) => a - b).map((a) => ({ value: a, label: `${a}A` }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Select
+                  label="Curve Type"
+                  value={formData.mainBreakerCurveType}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerCurveType: e.target.value })}
+                  options={[
+                    { value: '', label: 'None (typical for main breakers)' },
+                    ...CURVE_TYPES.map((c) => ({ value: c.value || '', label: `${c.label} - ${c.description}` })),
+                  ]}
+                />
+                <Select
+                  label="Poles"
+                  value={formData.mainBreakerPoles}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerPoles: parseInt(e.target.value) })}
+                  options={[1, 2, 3, 4].map((p) => ({ value: p, label: `${p}-pole` }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Manufacturer"
+                  placeholder="ABB, Schneider, Square D, etc."
+                  value={formData.mainBreakerManufacturer}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerManufacturer: e.target.value })}
+                />
+                <Input
+                  label="Model"
+                  placeholder="QO142M200, etc."
+                  value={formData.mainBreakerModel}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerModel: e.target.value })}
+                />
+              </div>
+
+              <Input
+                label="Device URL"
+                placeholder="https://example.com/product"
+                type="url"
+                value={formData.mainBreakerDeviceUrl}
+                onChange={(e) => setFormData({ ...formData, mainBreakerDeviceUrl: e.target.value })}
+              />
+
+              <Input
+                label="Custom Color (optional)"
+                type="color"
+                value={formData.mainBreakerColor}
+                onChange={(e) => setFormData({ ...formData, mainBreakerColor: e.target.value })}
+              />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  className="input min-h-[80px]"
+                  placeholder="Any additional notes..."
+                  value={formData.mainBreakerNotes}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerNotes: e.target.value })}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="panelMainBreakerIsActive"
+                  checked={formData.mainBreakerIsActive}
+                  onChange={(e) => setFormData({ ...formData, mainBreakerIsActive: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="panelMainBreakerIsActive" className="text-sm text-gray-700">
+                  Main breaker is active/on
+                </label>
+              </div>
+            </div>
           </div>
+
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"

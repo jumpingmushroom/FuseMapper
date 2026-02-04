@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { Fuse, FuseType, CurveType, CreateFuseInput } from '@fusemapper/shared';
-import { FUSE_TYPES, CURVE_TYPES, COMMON_AMPERAGES, DEFAULT_FUSE_VALUES } from '@fusemapper/shared';
+import type { Fuse, FuseType, CurveType, SpdClass, CreateFuseInput } from '@fusemapper/shared';
+import { FUSE_TYPES, CURVE_TYPES, COMMON_AMPERAGES, DEFAULT_FUSE_VALUES, SPD_VOLTAGE_RATINGS, SPD_SURGE_CURRENT_RATINGS, SPD_CLASSES } from '@fusemapper/shared';
 import { Modal, Button, Input, Select } from '@/components/ui';
 import { usePanel } from '@/hooks';
 import { Trash2 } from 'lucide-react';
@@ -42,6 +42,10 @@ export function FuseModal({
     isActive: DEFAULT_FUSE_VALUES.isActive,
     notes: '',
     deviceUrl: '',
+    // SPD-specific fields
+    spdVoltageRating: undefined as number | undefined,
+    spdSurgeCurrentRating: undefined as number | undefined,
+    spdClass: null as SpdClass,
   });
 
   useEffect(() => {
@@ -59,6 +63,10 @@ export function FuseModal({
         isActive: fuse.isActive,
         notes: fuse.notes || '',
         deviceUrl: fuse.deviceUrl || '',
+        // SPD-specific fields
+        spdVoltageRating: fuse.spdVoltageRating ?? undefined,
+        spdSurgeCurrentRating: fuse.spdSurgeCurrentRating ?? undefined,
+        spdClass: fuse.spdClass as SpdClass,
       });
     } else {
       setFormData({
@@ -74,6 +82,10 @@ export function FuseModal({
         isActive: DEFAULT_FUSE_VALUES.isActive,
         notes: '',
         deviceUrl: '',
+        // SPD-specific fields
+        spdVoltageRating: undefined,
+        spdSurgeCurrentRating: undefined,
+        spdClass: null,
       });
     }
   }, [fuse, open]);
@@ -85,14 +97,18 @@ export function FuseModal({
       rowId: formData.rowId,
       slotNumber: formData.slotNumber,
       type: formData.type,
-      amperage: formData.amperage,
-      curveType: formData.curveType,
-      poles: formData.poles,
+      amperage: formData.type === 'SPD' ? undefined : formData.amperage,
+      curveType: formData.type === 'SPD' ? null : formData.curveType,
+      poles: formData.type === 'SPD' ? 1 : formData.poles,
       manufacturer: formData.manufacturer || undefined,
       model: formData.model || undefined,
       isActive: formData.isActive,
       notes: formData.notes || undefined,
       deviceUrl: formData.deviceUrl || undefined,
+      // SPD-specific fields
+      spdVoltageRating: formData.type === 'SPD' ? formData.spdVoltageRating : undefined,
+      spdSurgeCurrentRating: formData.type === 'SPD' ? formData.spdSurgeCurrentRating : undefined,
+      spdClass: formData.type === 'SPD' ? formData.spdClass : null,
     };
     await onSubmit(data);
   };
@@ -160,31 +176,67 @@ export function FuseModal({
             onChange={(e) => setFormData({ ...formData, type: e.target.value as FuseType })}
             options={FUSE_TYPES.map((t) => ({ value: t.value, label: `${t.label} - ${t.description}` }))}
           />
-          <Select
-            label="Amperage"
-            value={formData.amperage}
-            onChange={(e) => setFormData({ ...formData, amperage: parseInt(e.target.value) })}
-            options={COMMON_AMPERAGES.map((a) => ({ value: a, label: `${a}A` }))}
-          />
+
+          {formData.type === 'SPD' ? (
+            <Select
+              label="Voltage Rating"
+              value={formData.spdVoltageRating ?? ''}
+              onChange={(e) => setFormData({ ...formData, spdVoltageRating: e.target.value ? parseInt(e.target.value) : undefined })}
+              options={[
+                { value: '', label: 'Select voltage' },
+                ...SPD_VOLTAGE_RATINGS.map((v) => ({ value: v, label: `${v}V` })),
+              ]}
+            />
+          ) : (
+            <Select
+              label="Amperage"
+              value={formData.amperage}
+              onChange={(e) => setFormData({ ...formData, amperage: parseInt(e.target.value) })}
+              options={COMMON_AMPERAGES.map((a) => ({ value: a, label: `${a}A` }))}
+            />
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Select
-            label="Curve Type"
-            value={formData.curveType || ''}
-            onChange={(e) => setFormData({ ...formData, curveType: e.target.value as CurveType || null })}
-            options={[
-              { value: '', label: 'None' },
-              ...CURVE_TYPES.map((c) => ({ value: c.value || '', label: `${c.label} - ${c.description}` })),
-            ]}
-          />
-          <Select
-            label="Poles"
-            value={formData.poles}
-            onChange={(e) => setFormData({ ...formData, poles: parseInt(e.target.value) })}
-            options={[1, 2, 3, 4].map((p) => ({ value: p, label: `${p}-pole` }))}
-          />
-        </div>
+        {formData.type === 'SPD' ? (
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Surge Current Rating"
+              value={formData.spdSurgeCurrentRating ?? ''}
+              onChange={(e) => setFormData({ ...formData, spdSurgeCurrentRating: e.target.value ? parseInt(e.target.value) : undefined })}
+              options={[
+                { value: '', label: 'Select rating' },
+                ...SPD_SURGE_CURRENT_RATINGS.map((r) => ({ value: r, label: `${r}kA` })),
+              ]}
+            />
+            <Select
+              label="SPD Class"
+              value={formData.spdClass || ''}
+              onChange={(e) => setFormData({ ...formData, spdClass: e.target.value as SpdClass || null })}
+              options={[
+                { value: '', label: 'Select class' },
+                ...SPD_CLASSES.map((c) => ({ value: c.value, label: `${c.label} - ${c.description}` })),
+              ]}
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Curve Type"
+              value={formData.curveType || ''}
+              onChange={(e) => setFormData({ ...formData, curveType: e.target.value as CurveType || null })}
+              options={[
+                { value: '', label: 'None' },
+                ...CURVE_TYPES.map((c) => ({ value: c.value || '', label: `${c.label} - ${c.description}` })),
+              ]}
+            />
+            <Select
+              label="Poles"
+              value={formData.poles}
+              onChange={(e) => setFormData({ ...formData, poles: parseInt(e.target.value) })}
+              options={[1, 2, 3, 4].map((p) => ({ value: p, label: `${p}-pole` }))}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <Input

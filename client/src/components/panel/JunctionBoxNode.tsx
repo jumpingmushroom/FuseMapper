@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import type { JunctionBoxWithSockets, UpdateJunctionBoxInput } from '@fusemapper/shared';
 import { SocketNode } from './SocketNode';
-import { DeviceList } from '../device/DeviceList';
+import { HardwiredDeviceBranch } from '../device/HardwiredDeviceBranch';
 import { HardwiredDeviceModal } from './HardwiredDeviceModal';
 import { useUpdateJunctionBox, useDeleteJunctionBox, useCreateSocketOnJunctionBox, useCreateDeviceOnJunctionBox } from '@/hooks';
 import { JunctionBoxModal } from './JunctionBoxModal';
@@ -70,63 +70,59 @@ export function JunctionBoxNode({ junctionBox, panelId }: JunctionBoxNodeProps) 
   return (
     <>
       <div className="flex flex-col gap-2">
-        {/* Junction Box Container */}
-        <div
-          ref={setNodeRef}
-          className={`relative bg-amber-50 rounded-lg border transition-all cursor-pointer
-            ${isOver ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' : 'border-amber-200 hover:border-amber-300'}
-          `}
-          style={{ width: '150px', minHeight: '60px' }}
-          onClick={() => setShowEditModal(true)}
-        >
-          {/* Room color indicator */}
-          {junctionBox.room && (
-            <div
-              className="absolute top-0 left-0 w-1 h-full rounded-l-lg"
-              style={{ backgroundColor: junctionBox.room.color }}
-            />
-          )}
-
-          <div className="p-2">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1">
-                <GitBranch size={12} className="text-amber-600" />
-                <span className="text-[10px] font-medium text-amber-700">
-                  {junctionBox.label || `Junction Box ${junctionBox.sortOrder + 1}`}
-                </span>
-              </div>
-              <Settings size={10} className="text-amber-300" />
-            </div>
-
-            {/* Room badge */}
+        {/* Junction Box Container with Hardwired Branch */}
+        <div className="flex items-center">
+          <div
+            ref={setNodeRef}
+            className={`relative bg-amber-50 rounded-lg border transition-all cursor-pointer
+              ${isOver ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' : 'border-amber-200 hover:border-amber-300'}
+            `}
+            style={{ width: '150px', minHeight: '60px' }}
+            onClick={() => setShowEditModal(true)}
+          >
+            {/* Room color indicator */}
             {junctionBox.room && (
               <div
-                className="inline-block px-1.5 py-0.5 rounded text-[9px] text-white font-medium mb-1"
+                className="absolute top-0 left-0 w-1 h-full rounded-l-lg"
                 style={{ backgroundColor: junctionBox.room.color }}
-              >
-                {junctionBox.room.name}
-              </div>
+              />
             )}
 
-            {/* Hardwired devices on junction box */}
-            {junctionBox.devices.length > 0 && (
-              <div className="mb-1">
-                <DeviceList
-                  devices={junctionBox.devices}
-                  panelId={panelId}
-                  compact
-                />
+            <div className="p-2">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1">
+                  <GitBranch size={12} className="text-amber-600" />
+                  <span className="text-[10px] font-medium text-amber-700">
+                    {junctionBox.label || `Junction Box ${junctionBox.sortOrder + 1}`}
+                  </span>
+                </div>
+                <Settings size={10} className="text-amber-300" />
               </div>
-            )}
 
-            {/* Message if no children */}
-            {junctionBox.devices.length === 0 && junctionBox.sockets.length === 0 && (
-              <div className="text-[10px] text-amber-600 text-center py-2">
-                Drop sockets or devices here
-              </div>
-            )}
+              {/* Room badge */}
+              {junctionBox.room && (
+                <div
+                  className="inline-block px-1.5 py-0.5 rounded text-[9px] text-white font-medium mb-1"
+                  style={{ backgroundColor: junctionBox.room.color }}
+                >
+                  {junctionBox.room.name}
+                </div>
+              )}
+
+              {/* Message if no children */}
+              {junctionBox.devices.length === 0 && junctionBox.sockets.length === 0 && (
+                <div className="text-[10px] text-amber-600 text-center py-2">
+                  Drop sockets or devices here
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Hardwired devices branching to the right */}
+          {junctionBox.devices.length > 0 && (
+            <HardwiredDeviceBranch devices={junctionBox.devices} panelId={panelId} />
+          )}
         </div>
 
         {/* Branching sockets */}

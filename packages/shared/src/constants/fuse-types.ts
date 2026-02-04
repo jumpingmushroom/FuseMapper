@@ -70,3 +70,14 @@ export const DEFAULT_FUSE_VALUES = {
   poles: 1,
   isActive: true,
 };
+
+// SPD-specific constants
+export const SPD_VOLTAGE_RATINGS = [230, 400, 480, 690]; // Voltage in V
+
+export const SPD_SURGE_CURRENT_RATINGS = [5, 10, 15, 20, 25, 40, 50, 65, 100]; // Surge current in kA
+
+export const SPD_CLASSES = [
+  { value: 'Type1', label: 'Type 1', description: 'Service entrance protection' },
+  { value: 'Type2', label: 'Type 2', description: 'Distribution board protection' },
+  { value: 'Type3', label: 'Type 3', description: 'Equipment protection' },
+];

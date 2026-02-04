@@ -5,6 +5,14 @@ export interface Panel {
   location: string | null;
   mainBreakerAmperage: number | null;
   mainBreakerType: string | null;
+  mainBreakerPoles: number;
+  mainBreakerCurveType: string | null;
+  mainBreakerManufacturer: string | null;
+  mainBreakerModel: string | null;
+  mainBreakerNotes: string | null;
+  mainBreakerDeviceUrl: string | null;
+  mainBreakerColor: string | null;
+  mainBreakerIsActive: boolean;
   parentFuseId: string | null;
   feedAmperage: number | null;
   createdAt: Date;
@@ -18,6 +26,14 @@ export interface CreatePanelInput {
   location?: string;
   mainBreakerAmperage?: number;
   mainBreakerType?: string;
+  mainBreakerPoles?: number;
+  mainBreakerCurveType?: string;
+  mainBreakerManufacturer?: string;
+  mainBreakerModel?: string;
+  mainBreakerNotes?: string;
+  mainBreakerDeviceUrl?: string;
+  mainBreakerColor?: string;
+  mainBreakerIsActive?: boolean;
   parentFuseId?: string;
   feedAmperage?: number;
 }
@@ -27,6 +43,14 @@ export interface UpdatePanelInput {
   location?: string;
   mainBreakerAmperage?: number | null;
   mainBreakerType?: string | null;
+  mainBreakerPoles?: number;
+  mainBreakerCurveType?: string | null;
+  mainBreakerManufacturer?: string | null;
+  mainBreakerModel?: string | null;
+  mainBreakerNotes?: string | null;
+  mainBreakerDeviceUrl?: string | null;
+  mainBreakerColor?: string | null;
+  mainBreakerIsActive?: boolean;
   parentFuseId?: string | null;
   feedAmperage?: number | null;
 }
@@ -70,6 +94,7 @@ export interface ReorderRowInput {
 // Fuse Types
 export type FuseType = 'MCB' | 'RCBO' | 'RCD' | 'MAIN' | 'SPD' | 'DIN_DEVICE';
 export type CurveType = 'B' | 'C' | 'D' | null;
+export type SpdClass = 'Type1' | 'Type2' | 'Type3' | null;
 
 export interface Fuse {
   id: string;
@@ -88,6 +113,10 @@ export interface Fuse {
   color: string | null;
   notes: string | null;
   deviceUrl: string | null;
+  // SPD-specific fields
+  spdVoltageRating: number | null;
+  spdSurgeCurrentRating: number | null;
+  spdClass: SpdClass;
   createdAt: Date;
   updatedAt: Date;
   sockets?: Socket[];
@@ -112,6 +141,10 @@ export interface CreateFuseInput {
   color?: string;
   notes?: string;
   deviceUrl?: string;
+  // SPD-specific fields
+  spdVoltageRating?: number;
+  spdSurgeCurrentRating?: number;
+  spdClass?: SpdClass;
 }
 
 export interface UpdateFuseInput {
@@ -129,6 +162,10 @@ export interface UpdateFuseInput {
   color?: string;
   notes?: string;
   deviceUrl?: string;
+  // SPD-specific fields
+  spdVoltageRating?: number | null;
+  spdSurgeCurrentRating?: number | null;
+  spdClass?: SpdClass;
 }
 
 // Junction Box Types
