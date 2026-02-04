@@ -115,7 +115,7 @@ export function RowNode({ row, panelId, onNavigateToSubPanel, isCollapsed = fals
       {/* Row Container - only show when expanded */}
       {!isCollapsed && (
         <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
-          <div className="flex gap-4 overflow-x-auto">
+          <div className="flex gap-4 flex-wrap">
             {/* Fuses */}
             {row.fuses.map((fuse) => (
               <div key={fuse.id} className="flex-shrink-0">
