@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CreateRowInput, UpdateRowInput, ReorderRowInput } from '@fusemapper/shared';
 import { rowsApi } from '@/api/rows';
+import { panelKeys } from './usePanels';
 
 export function useCreateRow(panelId: string) {
   const queryClient = useQueryClient();
@@ -9,7 +10,7 @@ export function useCreateRow(panelId: string) {
     mutationFn: (data: Omit<CreateRowInput, 'panelId'>) =>
       rowsApi.create(panelId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['panel', panelId] });
+      queryClient.invalidateQueries({ queryKey: panelKeys.detail(panelId) });
     },
   });
 }
@@ -21,7 +22,7 @@ export function useUpdateRow(panelId: string) {
     mutationFn: ({ id, data }: { id: string; data: UpdateRowInput }) =>
       rowsApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['panel', panelId] });
+      queryClient.invalidateQueries({ queryKey: panelKeys.detail(panelId) });
     },
   });
 }
@@ -33,7 +34,7 @@ export function useReorderRow(panelId: string) {
     mutationFn: ({ id, data }: { id: string; data: ReorderRowInput }) =>
       rowsApi.reorder(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['panel', panelId] });
+      queryClient.invalidateQueries({ queryKey: panelKeys.detail(panelId) });
     },
   });
 }
@@ -44,7 +45,7 @@ export function useDeleteRow(panelId: string) {
   return useMutation({
     mutationFn: (id: string) => rowsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['panel', panelId] });
+      queryClient.invalidateQueries({ queryKey: panelKeys.detail(panelId) });
     },
   });
 }
