@@ -2,16 +2,15 @@
 
 ## Development Procedure
 
-When implementing new features or fixes:
+When a new feature or fix has been done:
 
 1. **Make changes** - Implement the feature or fix
-2. **Rebuild Docker container** - `docker compose build`
-3. **Start container** - `docker compose up -d`
-4. **Check logs** - `docker compose logs` - Verify everything works
-5. **Test manually** - Access http://localhost:3050 and verify functionality
-6. **Push to GitHub** - ONLY after validating container is running properly: `git add . && git commit -m "message" && git push`
+2. **Rebuild the local Docker container** - `docker compose build`
+3. **Start the container** - `docker compose up -d`
+4. **Check the logs** - `docker compose logs` - Verify everything works as it should
+5. **Push the changes to GitHub** - `git add . && git commit -m "message" && git push`
 
-**IMPORTANT**: Always complete steps 4 and 5 (validation) before pushing to GitHub in step 6.
+**IMPORTANT**: Always verify the container is running properly (step 4) before pushing to GitHub.
 
 ## Quick Commands
 
