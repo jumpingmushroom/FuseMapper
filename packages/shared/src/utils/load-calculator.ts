@@ -1,4 +1,4 @@
-import type { Device, LoadCalculation, SocketWithDevices } from '../types/index.js';
+import type { Device, LoadCalculation, SocketWithDevices, JunctionBoxWithSockets } from '../types/index.js';
 
 // Norwegian standard voltage
 export const VOLTAGE = 230;
@@ -7,11 +7,12 @@ export interface LoadCalculatorOptions {
   fuseId: string;
   amperage: number | null;
   sockets: SocketWithDevices[];
+  junctionBoxes?: JunctionBoxWithSockets[];
   hardwiredDevices?: Device[];
 }
 
 export function calculateLoad(options: LoadCalculatorOptions): LoadCalculation {
-  const { fuseId, amperage, sockets, hardwiredDevices } = options;
+  const { fuseId, amperage, sockets, junctionBoxes, hardwiredDevices } = options;
 
   // Sum wattage from all devices across all sockets
   const socketWattage = sockets.reduce((sum, socket) => {
@@ -20,12 +21,29 @@ export function calculateLoad(options: LoadCalculatorOptions): LoadCalculation {
     }, 0);
   }, 0);
 
+  // Sum wattage from junction boxes (including their sockets and devices)
+  const junctionBoxWattage = (junctionBoxes || []).reduce((sum, junctionBox) => {
+    // Add wattage from devices directly on the junction box
+    const jbDeviceWattage = junctionBox.devices.reduce((jbSum, device) => {
+      return jbSum + (device.estimatedWattage ?? 0);
+    }, 0);
+
+    // Add wattage from sockets connected to the junction box
+    const jbSocketWattage = junctionBox.sockets.reduce((socketSum, socket) => {
+      return socketSum + socket.devices.reduce((deviceSum, device) => {
+        return deviceSum + (device.estimatedWattage ?? 0);
+      }, 0);
+    }, 0);
+
+    return sum + jbDeviceWattage + jbSocketWattage;
+  }, 0);
+
   // Sum wattage from hardwired devices
   const hardwiredWattage = (hardwiredDevices || []).reduce((sum, device) => {
     return sum + (device.estimatedWattage ?? 0);
   }, 0);
 
-  const totalWattage = socketWattage + hardwiredWattage;
+  const totalWattage = socketWattage + junctionBoxWattage + hardwiredWattage;
   const maxWattage = amperage ? amperage * VOLTAGE : 0;
   const loadPercentage = maxWattage > 0 ? (totalWattage / maxWattage) * 100 : 0;
 

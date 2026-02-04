@@ -91,6 +91,7 @@ export interface Fuse {
   createdAt: Date;
   updatedAt: Date;
   sockets?: Socket[];
+  junctionBoxes?: JunctionBox[];
   row?: Row | null;
   subPanel?: Panel | null;
 }
@@ -130,10 +131,45 @@ export interface UpdateFuseInput {
   deviceUrl?: string;
 }
 
+// Junction Box Types
+export interface JunctionBox {
+  id: string;
+  fuseId: string;
+  label: string | null;
+  sortOrder: number;
+  roomId: string | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  room?: Room | null;
+  sockets?: Socket[];
+  devices?: Device[];
+}
+
+export interface CreateJunctionBoxInput {
+  fuseId: string;
+  label?: string;
+  sortOrder?: number;
+  roomId?: string;
+  notes?: string;
+}
+
+export interface UpdateJunctionBoxInput {
+  label?: string;
+  sortOrder?: number;
+  roomId?: string | null;
+  notes?: string | null;
+}
+
+export interface ReorderJunctionBoxInput {
+  sortOrder: number;
+}
+
 // Socket Types
 export interface Socket {
   id: string;
-  fuseId: string;
+  fuseId: string | null;
+  junctionBoxId: string | null;
   label: string | null;
   sortOrder: number;
   roomId: string | null;
@@ -145,7 +181,8 @@ export interface Socket {
 }
 
 export interface CreateSocketInput {
-  fuseId: string;
+  fuseId?: string;
+  junctionBoxId?: string;
   label?: string;
   sortOrder?: number;
   roomId?: string;
@@ -202,11 +239,13 @@ export interface Device {
   id: string;
   socketId: string | null;
   fuseId: string | null;
+  junctionBoxId: string | null;
   name: string;
   icon: DeviceIcon;
   category: DeviceCategory;
   roomId: string | null;
   estimatedWattage: number | null;
+  isHardwired: boolean;
   notes: string | null;
   sortOrder: number;
   createdAt: Date;
@@ -217,11 +256,13 @@ export interface Device {
 export interface CreateDeviceInput {
   socketId?: string;
   fuseId?: string;
+  junctionBoxId?: string;
   name: string;
   icon?: DeviceIcon;
   category?: DeviceCategory;
   roomId?: string;
   estimatedWattage?: number;
+  isHardwired?: boolean;
   notes?: string;
   sortOrder?: number;
 }
@@ -229,11 +270,13 @@ export interface CreateDeviceInput {
 export interface UpdateDeviceInput {
   socketId?: string | null;
   fuseId?: string | null;
+  junctionBoxId?: string | null;
   name?: string;
   icon?: DeviceIcon;
   category?: DeviceCategory;
   roomId?: string | null;
   estimatedWattage?: number | null;
+  isHardwired?: boolean;
   notes?: string | null;
   sortOrder?: number;
 }
@@ -241,6 +284,8 @@ export interface UpdateDeviceInput {
 export interface MoveDeviceInput {
   socketId?: string | null;
   fuseId?: string | null;
+  junctionBoxId?: string | null;
+  isHardwired?: boolean;
   sortOrder?: number;
 }
 
@@ -248,6 +293,7 @@ export interface MoveDeviceInput {
 export interface Room {
   id: string;
   name: string;
+  code: string | null;
   color: string;
   createdAt: Date;
   updatedAt: Date;
@@ -255,11 +301,13 @@ export interface Room {
 
 export interface CreateRoomInput {
   name: string;
+  code?: string;
   color: string;
 }
 
 export interface UpdateRoomInput {
   name?: string;
+  code?: string;
   color?: string;
 }
 
@@ -268,8 +316,14 @@ export interface SocketWithDevices extends Socket {
   devices: DeviceWithRoom[];
 }
 
+export interface JunctionBoxWithSockets extends JunctionBox {
+  sockets: SocketWithDevices[];
+  devices: DeviceWithRoom[];
+}
+
 export interface FuseWithSockets extends Fuse {
   sockets: SocketWithDevices[];
+  junctionBoxes?: JunctionBoxWithSockets[];
   hardwiredDevices?: DeviceWithRoom[];
 }
 

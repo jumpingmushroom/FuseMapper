@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/error-handler.js';
 import panelsRouter from './routes/panels.js';
 import rowsRouter from './routes/rows.js';
 import fusesRouter from './routes/fuses.js';
+import junctionBoxesRouter from './routes/junction-boxes.js';
 import socketsRouter from './routes/sockets.js';
 import devicesRouter from './routes/devices.js';
 import roomsRouter from './routes/rooms.js';
@@ -39,6 +40,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/panels', panelsRouter);
 app.use('/api/rows', rowsRouter);
 app.use('/api/fuses', fusesRouter);
+app.use('/api/junction-boxes', junctionBoxesRouter);
 app.use('/api/sockets', socketsRouter);
 app.use('/api/devices', devicesRouter);
 app.use('/api/rooms', roomsRouter);

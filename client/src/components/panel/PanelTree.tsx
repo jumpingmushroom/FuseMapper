@@ -4,9 +4,9 @@ import { RowNode } from './RowNode';
 import { FuseNode } from './FuseNode';
 import { RowModal } from './RowModal';
 import { FuseModal } from './FuseModal';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCreateRow, useCreateFuse } from '@/hooks';
-import { Plus, Layers } from 'lucide-react';
+import { Plus, Layers, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { Button } from '@/components/ui';
 
 interface PanelTreeProps {
@@ -17,11 +17,102 @@ interface PanelTreeProps {
   onNavigateToSubPanel?: (subPanelId: string) => void;
 }
 
+// LocalStorage key for collapse state
+const COLLAPSE_STATE_KEY = 'fusemapper-row-collapse-state';
+
+// Load collapse state from localStorage
+function loadCollapseState(panelId: string): Record<string, boolean> {
+  try {
+    const stored = localStorage.getItem(COLLAPSE_STATE_KEY);
+    if (stored) {
+      const allStates = JSON.parse(stored);
+      return allStates[panelId] || {};
+    }
+  } catch (e) {
+    console.error('Failed to load collapse state:', e);
+  }
+  return {};
+}
+
+// Save collapse state to localStorage
+function saveCollapseState(panelId: string, rowStates: Record<string, boolean>) {
+  try {
+    const stored = localStorage.getItem(COLLAPSE_STATE_KEY);
+    const allStates = stored ? JSON.parse(stored) : {};
+    allStates[panelId] = rowStates;
+    localStorage.setItem(COLLAPSE_STATE_KEY, JSON.stringify(allStates));
+  } catch (e) {
+    console.error('Failed to save collapse state:', e);
+  }
+}
+
 export function PanelTree({ panel, onNavigateToSubPanel }: PanelTreeProps) {
   const createRow = useCreateRow(panel.id);
   const createFuse = useCreateFuse(panel.id);
   const [showCreateRowModal, setShowCreateRowModal] = useState(false);
   const [showCreateFuseModal, setShowCreateFuseModal] = useState(false);
+
+  // Initialize collapse state - all rows collapsed by default
+  const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(() => {
+    const savedState = loadCollapseState(panel.id);
+    // If no saved state, default all rows to collapsed
+    if (Object.keys(savedState).length === 0 && panel.rows) {
+      const defaultState: Record<string, boolean> = {};
+      panel.rows.forEach(row => {
+        defaultState[row.id] = true; // collapsed by default
+      });
+      return defaultState;
+    }
+    return savedState;
+  });
+
+  // Update collapse state when panel rows change
+  useEffect(() => {
+    if (panel.rows) {
+      setCollapsedRows(prev => {
+        const updated = { ...prev };
+        // Set new rows to collapsed by default
+        panel.rows?.forEach(row => {
+          if (!(row.id in updated)) {
+            updated[row.id] = true;
+          }
+        });
+        return updated;
+      });
+    }
+  }, [panel.rows]);
+
+  // Save collapse state whenever it changes
+  useEffect(() => {
+    saveCollapseState(panel.id, collapsedRows);
+  }, [collapsedRows, panel.id]);
+
+  const toggleRowCollapse = (rowId: string) => {
+    setCollapsedRows(prev => ({
+      ...prev,
+      [rowId]: !prev[rowId]
+    }));
+  };
+
+  const collapseAll = () => {
+    if (panel.rows) {
+      const allCollapsed: Record<string, boolean> = {};
+      panel.rows.forEach(row => {
+        allCollapsed[row.id] = true;
+      });
+      setCollapsedRows(allCollapsed);
+    }
+  };
+
+  const expandAll = () => {
+    if (panel.rows) {
+      const allExpanded: Record<string, boolean> = {};
+      panel.rows.forEach(row => {
+        allExpanded[row.id] = false;
+      });
+      setCollapsedRows(allExpanded);
+    }
+  };
 
   const handleCreateRow = async (data: Parameters<typeof createRow.mutateAsync>[0]) => {
     await createRow.mutateAsync(data);
@@ -58,6 +149,28 @@ export function PanelTree({ panel, onNavigateToSubPanel }: PanelTreeProps) {
         </div>
       )}
 
+      {/* Collapse All / Expand All Buttons */}
+      {panel.rows && panel.rows.length > 1 && (
+        <div className="flex justify-end gap-2 px-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={collapseAll}
+            icon={<ChevronsUp size={14} />}
+          >
+            Collapse All
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={expandAll}
+            icon={<ChevronsDown size={14} />}
+          >
+            Expand All
+          </Button>
+        </div>
+      )}
+
       {/* Rows */}
       {panel.rows && panel.rows.length > 0 && (
         <div className="space-y-4">
@@ -67,6 +180,8 @@ export function PanelTree({ panel, onNavigateToSubPanel }: PanelTreeProps) {
               row={row as RowWithFuses}
               panelId={panel.id}
               onNavigateToSubPanel={onNavigateToSubPanel}
+              isCollapsed={collapsedRows[row.id] ?? true}
+              onToggleCollapse={() => toggleRowCollapse(row.id)}
             />
           ))}
         </div>

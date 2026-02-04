@@ -65,17 +65,18 @@ model Fuse {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  panel            Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
-  row              Row?     @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  panel            Panel         @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  row              Row?          @relation(fields: [rowId], references: [id], onDelete: SetNull)
   sockets          Socket[]
+  junctionBoxes    JunctionBox[]
   hardwiredDevices Device[]
-  subPanel         Panel?   @relation("SubPanel")
+  subPanel         Panel?        @relation("SubPanel")
 
   @@unique([panelId, slotNumber])
   @@map("fuses")
 }
 
-model Socket {
+model JunctionBox {
   id        String   @id @default(cuid())
   fuseId    String   @map("fuse_id")
   label     String?
@@ -87,28 +88,51 @@ model Socket {
 
   fuse    Fuse     @relation(fields: [fuseId], references: [id], onDelete: Cascade)
   room    Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  sockets Socket[]
   devices Device[]
+
+  @@map("junction_boxes")
+}
+
+model Socket {
+  id            String       @id @default(cuid())
+  fuseId        String?      @map("fuse_id")
+  junctionBoxId String?      @map("junction_box_id")
+  label         String?
+  sortOrder     Int          @default(0) @map("sort_order")
+  roomId        String?      @map("room_id")
+  notes         String?
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  fuse        Fuse?        @relation(fields: [fuseId], references: [id], onDelete: Cascade)
+  junctionBox JunctionBox? @relation(fields: [junctionBoxId], references: [id], onDelete: Cascade)
+  room        Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  devices     Device[]
 
   @@map("sockets")
 }
 
 model Device {
-  id               String   @id @default(cuid())
-  socketId         String?  @map("socket_id")
-  fuseId           String?  @map("fuse_id")
+  id               String       @id @default(cuid())
+  socketId         String?      @map("socket_id")
+  fuseId           String?      @map("fuse_id")
+  junctionBoxId    String?      @map("junction_box_id")
   name             String
-  icon             String   @default("generic")
-  category         String   @default("other")
-  roomId           String?  @map("room_id")
-  estimatedWattage Int?     @map("estimated_wattage")
+  icon             String       @default("generic")
+  category         String       @default("other")
+  roomId           String?      @map("room_id")
+  estimatedWattage Int?         @map("estimated_wattage")
+  isHardwired      Boolean      @default(false) @map("is_hardwired")
   notes            String?
-  sortOrder        Int      @default(0) @map("sort_order")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  sortOrder        Int          @default(0) @map("sort_order")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
-  socket Socket? @relation(fields: [socketId], references: [id], onDelete: SetNull)
-  fuse   Fuse?   @relation(fields: [fuseId], references: [id], onDelete: Cascade)
-  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  socket      Socket?      @relation(fields: [socketId], references: [id], onDelete: SetNull)
+  fuse        Fuse?        @relation(fields: [fuseId], references: [id], onDelete: Cascade)
+  junctionBox JunctionBox? @relation(fields: [junctionBoxId], references: [id], onDelete: Cascade)
+  room        Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
   @@map("devices")
 }
@@ -116,12 +140,14 @@ model Device {
 model Room {
   id        String   @id @default(cuid())
   name      String
+  code      String?  // Room abbreviation (KIT, LR, GAR, etc.)
   color     String   @default("#6B7280")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  sockets Socket[]
-  devices Device[]
+  sockets       Socket[]
+  junctionBoxes JunctionBox[]
+  devices       Device[]
 
   @@map("rooms")
 }

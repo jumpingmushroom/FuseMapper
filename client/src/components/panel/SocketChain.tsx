@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { FuseWithSockets } from '@fusemapper/shared';
 import { SocketNode } from './SocketNode';
+import { JunctionBoxNode } from './JunctionBoxNode';
 import { SubPanelModal } from './SubPanelModal';
 import { HardwiredDeviceModal } from './HardwiredDeviceModal';
-import { useCreateSocket, useCreateSubPanel, useCreateDevice } from '@/hooks';
-import { Plus, Grid3x3, Zap } from 'lucide-react';
+import { useCreateSocket, useCreateJunctionBox, useCreateSubPanel, useCreateDevice } from '@/hooks';
+import { Plus, Grid3x3, Zap, GitBranch } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 interface SocketChainProps {
@@ -14,6 +15,7 @@ interface SocketChainProps {
 
 export function SocketChain({ fuse, panelId }: SocketChainProps) {
   const createSocket = useCreateSocket(panelId);
+  const createJunctionBox = useCreateJunctionBox(panelId);
   const createSubPanel = useCreateSubPanel(panelId);
   const createDevice = useCreateDevice(panelId);
   const [isCreating, setIsCreating] = useState(false);
@@ -24,6 +26,18 @@ export function SocketChain({ fuse, panelId }: SocketChainProps) {
     setIsCreating(true);
     try {
       await createSocket.mutateAsync({
+        fuseId: fuse.id,
+        data: {},
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleAddJunctionBox = async () => {
+    setIsCreating(true);
+    try {
+      await createJunctionBox.mutateAsync({
         fuseId: fuse.id,
         data: {},
       });
@@ -97,6 +111,14 @@ export function SocketChain({ fuse, panelId }: SocketChainProps) {
                       Add Socket
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
+                      onClick={handleAddJunctionBox}
+                      disabled={isCreating}
+                      className="px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 cursor-pointer outline-none disabled:opacity-50"
+                    >
+                      <GitBranch size={14} />
+                      Add Junction Box
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
                       onClick={() => setShowHardwiredModal(true)}
                       className="px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 cursor-pointer outline-none"
                     >
@@ -118,8 +140,19 @@ export function SocketChain({ fuse, panelId }: SocketChainProps) {
         </div>
       ))}
 
+      {/* Junction Boxes */}
+      {fuse.junctionBoxes && fuse.junctionBoxes.length > 0 && fuse.junctionBoxes.map((junctionBox) => (
+        <div key={junctionBox.id} className="flex flex-col items-center">
+          {/* Vertical connector */}
+          <div className="w-0.5 h-4 bg-gray-300" />
+
+          {/* Junction Box Node */}
+          <JunctionBoxNode junctionBox={junctionBox} panelId={panelId} />
+        </div>
+      ))}
+
       {/* Add first socket button when chain is empty */}
-      {fuse.sockets.length === 0 && !hasSubPanel && (
+      {fuse.sockets.length === 0 && (fuse.junctionBoxes?.length === 0 || !fuse.junctionBoxes) && !hasSubPanel && (
         <div className="flex flex-col items-center">
           <div className="w-0.5 h-4 bg-gray-300" />
           <DropdownMenu.Root>
@@ -147,6 +180,14 @@ export function SocketChain({ fuse, panelId }: SocketChainProps) {
                 >
                   <Plus size={14} />
                   Add Socket
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onClick={handleAddJunctionBox}
+                  disabled={isCreating}
+                  className="px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 cursor-pointer outline-none disabled:opacity-50"
+                >
+                  <GitBranch size={14} />
+                  Add Junction Box
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
                   onClick={() => setShowHardwiredModal(true)}

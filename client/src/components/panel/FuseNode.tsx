@@ -28,6 +28,7 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
     fuseId: fuse.id,
     amperage: fuse.amperage,
     sockets: fuse.sockets,
+    junctionBoxes: fuse.junctionBoxes,
     hardwiredDevices: fuse.hardwiredDevices,
   });
 
@@ -42,8 +43,11 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
     await deleteFuse.mutateAsync(fuse.id);
   };
 
-  // Count total devices across all sockets and hardwired
+  // Count total devices across all sockets, junction boxes, and hardwired
   const totalDevices = fuse.sockets.reduce((sum, socket) => sum + socket.devices.length, 0) +
+    (fuse.junctionBoxes || []).reduce((sum, jb) =>
+      sum + jb.devices.length + jb.sockets.reduce((s, socket) => s + socket.devices.length, 0), 0
+    ) +
     (fuse.hardwiredDevices?.length || 0);
 
   // Check if fuse has a sub-panel
@@ -144,7 +148,9 @@ export function FuseNode({ fuse, panelId, onNavigateToSubPanel }: FuseNodeProps)
           {/* Socket/device count or sub-panel indicator */}
           {!hasSubPanel && (
             <div className="text-[10px] text-gray-400 mt-1">
-              {fuse.sockets.length} socket{fuse.sockets.length !== 1 ? 's' : ''} · {totalDevices} device{totalDevices !== 1 ? 's' : ''}
+              {fuse.sockets.length} socket{fuse.sockets.length !== 1 ? 's' : ''} ·
+              {(fuse.junctionBoxes?.length || 0) > 0 && ` ${fuse.junctionBoxes?.length} JB · `}
+              {totalDevices} device{totalDevices !== 1 ? 's' : ''}
             </div>
           )}
           {hasSubPanel && (

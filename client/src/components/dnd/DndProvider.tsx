@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -70,7 +70,7 @@ export function DndProvider({ children, panelId }: DndProviderProps) {
         if (device.socketId !== socketId) {
           await moveDevice.mutateAsync({
             id: device.id,
-            data: { socketId, fuseId: null },
+            data: { socketId, fuseId: null, junctionBoxId: null },
           });
         }
       } else if (activeData?.type === 'preset' && activeData.preset) {
@@ -96,7 +96,7 @@ export function DndProvider({ children, panelId }: DndProviderProps) {
         if (device.fuseId !== fuseId) {
           await moveDevice.mutateAsync({
             id: device.id,
-            data: { fuseId, socketId: null },
+            data: { fuseId, socketId: null, junctionBoxId: null },
           });
         }
       } else if (activeData?.type === 'preset' && activeData.preset) {
@@ -111,12 +111,39 @@ export function DndProvider({ children, panelId }: DndProviderProps) {
         });
       }
     }
+
+    // Handle drops on junction boxes
+    else if (overData?.type === 'junction-box') {
+      const junctionBoxId = overData.junctionBoxId as string;
+
+      if (activeData?.type === 'device' && activeData.device) {
+        // Move existing device to junction box (hardwired)
+        const device = activeData.device as DeviceWithRoom;
+        if (device.junctionBoxId !== junctionBoxId) {
+          await moveDevice.mutateAsync({
+            id: device.id,
+            data: { junctionBoxId, socketId: null, fuseId: null, isHardwired: true },
+          });
+        }
+      } else if (activeData?.type === 'preset' && activeData.preset) {
+        // Create new hardwired device from preset on junction box
+        const preset = activeData.preset as DevicePreset;
+        await createDevice.mutateAsync({
+          junctionBoxId,
+          name: preset.name,
+          icon: preset.icon,
+          category: preset.category,
+          estimatedWattage: preset.estimatedWattage,
+          isHardwired: true,
+        });
+      }
+    }
   };
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

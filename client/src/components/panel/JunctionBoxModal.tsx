@@ -1,28 +1,28 @@
 import { useState, useEffect } from 'react';
-import type { Socket, UpdateSocketInput } from '@fusemapper/shared';
+import type { JunctionBox, UpdateJunctionBoxInput } from '@fusemapper/shared';
 import { Modal, Button, Input, Select } from '@/components/ui';
 import { useRooms } from '@/hooks';
 import { Trash2 } from 'lucide-react';
 
-interface SocketModalProps {
+interface JunctionBoxModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: UpdateSocketInput) => Promise<void>;
+  onSubmit: (data: UpdateJunctionBoxInput) => Promise<void>;
   onDelete?: () => Promise<void>;
   loading?: boolean;
   deleteLoading?: boolean;
-  socket?: Socket;
+  junctionBox?: JunctionBox;
 }
 
-export function SocketModal({
+export function JunctionBoxModal({
   open,
   onClose,
   onSubmit,
   onDelete,
   loading,
   deleteLoading,
-  socket,
-}: SocketModalProps) {
+  junctionBox,
+}: JunctionBoxModalProps) {
   const { data: rooms = [] } = useRooms();
   const [formData, setFormData] = useState({
     label: '',
@@ -31,11 +31,11 @@ export function SocketModal({
   });
 
   useEffect(() => {
-    if (socket) {
+    if (junctionBox) {
       setFormData({
-        label: socket.label || '',
-        roomId: socket.roomId || '',
-        notes: socket.notes || '',
+        label: junctionBox.label || '',
+        roomId: junctionBox.roomId || '',
+        notes: junctionBox.notes || '',
       });
     } else {
       setFormData({
@@ -44,11 +44,11 @@ export function SocketModal({
         notes: '',
       });
     }
-  }, [socket, open]);
+  }, [junctionBox, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data: UpdateSocketInput = {
+    const data: UpdateJunctionBoxInput = {
       label: formData.label || undefined,
       roomId: formData.roomId || null,
       notes: formData.notes || undefined,
@@ -60,13 +60,13 @@ export function SocketModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={socket ? 'Edit Socket' : 'Add Socket'}
+      title={junctionBox ? 'Edit Junction Box' : 'Add Junction Box'}
       size="sm"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Label (optional)"
-          placeholder="Leave empty to auto-generate (e.g., KIT-S1)"
+          placeholder="Leave empty to auto-generate (e.g., KIT-JB1)"
           value={formData.label}
           onChange={(e) => setFormData({ ...formData, label: e.target.value })}
           helperText="Auto-generates based on room if left empty"
@@ -96,7 +96,7 @@ export function SocketModal({
         </div>
 
         <div className="flex justify-between pt-4">
-          {socket && onDelete ? (
+          {junctionBox && onDelete ? (
             <Button
               type="button"
               variant="danger"
@@ -115,7 +115,7 @@ export function SocketModal({
               Cancel
             </Button>
             <Button type="submit" loading={loading}>
-              {socket ? 'Save' : 'Add Socket'}
+              {junctionBox ? 'Save' : 'Add Junction Box'}
             </Button>
           </div>
         </div>

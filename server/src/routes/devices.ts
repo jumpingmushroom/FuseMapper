@@ -17,11 +17,13 @@ const iconEnum = z.enum([
 const createDeviceSchema = z.object({
   socketId: z.string().optional(),
   fuseId: z.string().optional(),
+  junctionBoxId: z.string().optional(),
   name: z.string().min(1).max(100),
   icon: iconEnum.default('generic'),
   category: categoryEnum.default('other'),
   roomId: z.string().optional().nullable(),
   estimatedWattage: z.number().int().min(0).max(50000).optional().nullable(),
+  isHardwired: z.boolean().default(false),
   notes: z.string().max(500).optional().nullable(),
   sortOrder: z.number().int().default(0),
 });
@@ -31,6 +33,8 @@ const updateDeviceSchema = createDeviceSchema.partial();
 const moveDeviceSchema = z.object({
   socketId: z.string().optional().nullable(),
   fuseId: z.string().optional().nullable(),
+  junctionBoxId: z.string().optional().nullable(),
+  isHardwired: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });
 
@@ -44,7 +48,12 @@ router.get('/', async (req, res, next) => {
       where.socketId = socketId as string;
     }
     if (unassigned === 'true') {
-      where.socketId = null;
+      // A device is unassigned only if it has no parent (socket, fuse, or junction box)
+      where.AND = [
+        { socketId: null },
+        { fuseId: null },
+        { junctionBoxId: null }
+      ];
     }
 
     const devices = await prisma.device.findMany({
@@ -81,12 +90,14 @@ router.post('/', async (req, res, next) => {
   try {
     const data = createDeviceSchema.parse(req.body);
 
-    // Validate mutually exclusive socketId and fuseId
-    if (data.socketId && data.fuseId) {
-      throw new ApiError(400, 'Device cannot have both socketId and fuseId');
+    // Validate: device can only have one parent (socket, fuse, or junction box)
+    // Exception: socketId + isHardwired is allowed (device hardwired from a socket)
+    const parentCount = [data.socketId, data.fuseId, data.junctionBoxId].filter(Boolean).length;
+    if (parentCount > 1 && !(data.socketId && data.isHardwired && parentCount === 1)) {
+      throw new ApiError(400, 'Device can only have one parent (socketId, fuseId, or junctionBoxId)');
     }
 
-    // Get max sortOrder for the target socket or fuse
+    // Get max sortOrder for the target socket, fuse, or junction box
     if (data.socketId && data.sortOrder === 0) {
       const maxOrder = await prisma.device.aggregate({
         where: { socketId: data.socketId },
@@ -96,6 +107,12 @@ router.post('/', async (req, res, next) => {
     } else if (data.fuseId && data.sortOrder === 0) {
       const maxOrder = await prisma.device.aggregate({
         where: { fuseId: data.fuseId },
+        _max: { sortOrder: true },
+      });
+      data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+    } else if (data.junctionBoxId && data.sortOrder === 0) {
+      const maxOrder = await prisma.device.aggregate({
+        where: { junctionBoxId: data.junctionBoxId },
         _max: { sortOrder: true },
       });
       data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
@@ -126,14 +143,16 @@ router.patch('/:id', async (req, res, next) => {
   }
 });
 
-// PATCH /api/devices/:id/move - Move device to different socket or fuse
+// PATCH /api/devices/:id/move - Move device to different socket, fuse, or junction box
 router.patch('/:id/move', async (req, res, next) => {
   try {
-    const { socketId, fuseId, sortOrder } = moveDeviceSchema.parse(req.body);
+    const { socketId, fuseId, junctionBoxId, isHardwired, sortOrder } = moveDeviceSchema.parse(req.body);
 
-    // Validate mutually exclusive socketId and fuseId
-    if (socketId && fuseId) {
-      throw new ApiError(400, 'Device cannot have both socketId and fuseId');
+    // Validate: device can only have one parent
+    // Exception: socketId + isHardwired is allowed
+    const parentCount = [socketId, fuseId, junctionBoxId].filter(id => id !== null && id !== undefined).length;
+    if (parentCount > 1 && !(socketId && isHardwired && parentCount === 1)) {
+      throw new ApiError(400, 'Device can only have one parent (socketId, fuseId, or junctionBoxId)');
     }
 
     let newSortOrder = sortOrder;
@@ -151,6 +170,12 @@ router.patch('/:id/move', async (req, res, next) => {
         _max: { sortOrder: true },
       });
       newSortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+    } else if (newSortOrder === undefined && junctionBoxId) {
+      const maxOrder = await prisma.device.aggregate({
+        where: { junctionBoxId },
+        _max: { sortOrder: true },
+      });
+      newSortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
     } else if (newSortOrder === undefined) {
       newSortOrder = 0;
     }
@@ -160,6 +185,8 @@ router.patch('/:id/move', async (req, res, next) => {
       data: {
         socketId: socketId !== undefined ? socketId : undefined,
         fuseId: fuseId !== undefined ? fuseId : undefined,
+        junctionBoxId: junctionBoxId !== undefined ? junctionBoxId : undefined,
+        isHardwired: isHardwired !== undefined ? isHardwired : undefined,
         sortOrder: newSortOrder
       },
       include: { room: true },

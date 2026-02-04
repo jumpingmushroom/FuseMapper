@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { ApiError } from '../middleware/error-handler.js';
+import { generateJunctionBoxLabel, generateSocketLabel } from '@fusemapper/shared';
 
 const router = Router();
 
@@ -173,6 +174,26 @@ router.post('/:fuseId/sockets', async (req, res, next) => {
       data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
     }
 
+    // Auto-generate label if not provided and room is assigned
+    if (!data.label && data.roomId) {
+      const room = await prisma.room.findUnique({
+        where: { id: data.roomId },
+      });
+
+      if (room) {
+        // Count existing sockets in this room
+        const roomSocketCount = await prisma.socket.count({
+          where: { roomId: data.roomId },
+        });
+
+        data.label = generateSocketLabel(
+          room.code,
+          room.name,
+          roomSocketCount + 1
+        );
+      }
+    }
+
     const socket = await prisma.socket.create({
       data,
       include: {
@@ -184,6 +205,86 @@ router.post('/:fuseId/sockets', async (req, res, next) => {
       },
     });
     res.status(201).json({ data: socket, success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/fuses/:fuseId/junction-boxes - Create junction box
+const createJunctionBoxSchema = z.object({
+  fuseId: z.string(),
+  label: z.string().max(100).optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  roomId: z.string().optional(),
+  notes: z.string().max(500).optional(),
+});
+
+router.post('/:fuseId/junction-boxes', async (req, res, next) => {
+  try {
+    const data = createJunctionBoxSchema.parse({
+      ...req.body,
+      fuseId: req.params.fuseId,
+    });
+
+    // Verify fuse exists
+    const fuse = await prisma.fuse.findUnique({
+      where: { id: data.fuseId },
+    });
+
+    if (!fuse) {
+      throw new ApiError(404, 'Fuse not found');
+    }
+
+    // Auto-increment sortOrder if not provided
+    if (data.sortOrder === undefined) {
+      const maxOrder = await prisma.junctionBox.aggregate({
+        where: { fuseId: data.fuseId },
+        _max: { sortOrder: true },
+      });
+      data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+    }
+
+    // Auto-generate label if not provided and room is assigned
+    if (!data.label && data.roomId) {
+      const room = await prisma.room.findUnique({
+        where: { id: data.roomId },
+      });
+
+      if (room) {
+        // Count existing junction boxes in this room
+        const roomJunctionBoxCount = await prisma.junctionBox.count({
+          where: { roomId: data.roomId },
+        });
+
+        data.label = generateJunctionBoxLabel(
+          room.code,
+          room.name,
+          roomJunctionBoxCount + 1
+        );
+      }
+    }
+
+    const junctionBox = await prisma.junctionBox.create({
+      data,
+      include: {
+        sockets: {
+          include: {
+            devices: {
+              include: { room: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+            room: true,
+          },
+          orderBy: { sortOrder: 'asc' },
+        },
+        devices: {
+          include: { room: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+        room: true,
+      },
+    });
+    res.status(201).json({ data: junctionBox, success: true });
   } catch (error) {
     next(error);
   }

@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { ApiError } from '../middleware/error-handler.js';
+import { generateRoomCode } from '@fusemapper/shared';
 
 const router = Router();
 
 const createRoomSchema = z.object({
   name: z.string().min(1).max(100),
+  code: z.string().max(10).optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#6B7280'),
 });
 
@@ -55,6 +57,12 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createRoomSchema.parse(req.body);
+
+    // Auto-generate room code if not provided
+    if (!data.code && data.name) {
+      data.code = generateRoomCode(data.name);
+    }
+
     const room = await prisma.room.create({ data });
     res.status(201).json({ data: room, success: true });
   } catch (error) {
@@ -66,6 +74,12 @@ router.post('/', async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
   try {
     const data = updateRoomSchema.parse(req.body);
+
+    // Auto-generate room code if name changed but code not provided
+    if (data.name && !data.code) {
+      data.code = generateRoomCode(data.name);
+    }
+
     const room = await prisma.room.update({
       where: { id: req.params.id },
       data,

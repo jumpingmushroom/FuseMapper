@@ -30,6 +30,26 @@ const panelIncludes = {
             },
             orderBy: { sortOrder: 'asc' as const },
           },
+          junctionBoxes: {
+            include: {
+              sockets: {
+                include: {
+                  devices: {
+                    include: { room: true },
+                    orderBy: { sortOrder: 'asc' as const },
+                  },
+                  room: true,
+                },
+                orderBy: { sortOrder: 'asc' as const },
+              },
+              devices: {
+                include: { room: true },
+                orderBy: { sortOrder: 'asc' as const },
+              },
+              room: true,
+            },
+            orderBy: { sortOrder: 'asc' as const },
+          },
           hardwiredDevices: {
             include: { room: true },
             orderBy: { sortOrder: 'asc' as const },
@@ -48,6 +68,26 @@ const panelIncludes = {
     include: {
       sockets: {
         include: {
+          devices: {
+            include: { room: true },
+            orderBy: { sortOrder: 'asc' as const },
+          },
+          room: true,
+        },
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      junctionBoxes: {
+        include: {
+          sockets: {
+            include: {
+              devices: {
+                include: { room: true },
+                orderBy: { sortOrder: 'asc' as const },
+              },
+              room: true,
+            },
+            orderBy: { sortOrder: 'asc' as const },
+          },
           devices: {
             include: { room: true },
             orderBy: { sortOrder: 'asc' as const },

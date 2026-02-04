@@ -101,6 +101,8 @@ export function RoomsPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{room.name}</h3>
                     <p className="text-sm text-gray-500">
+                      {room.code && <span className="font-mono font-semibold">{room.code}</span>}
+                      {room.code && ' · '}
                       {room._count?.devices || 0} device{room._count?.devices !== 1 ? 's' : ''}
                     </p>
                   </div>
