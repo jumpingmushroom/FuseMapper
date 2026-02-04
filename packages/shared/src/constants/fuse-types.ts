@@ -52,7 +52,7 @@ export const CURVE_TYPES: { value: CurveType; label: string; description: string
   { value: 'D', label: 'D', description: 'High inrush (10-20x In)' },
 ];
 
-export const COMMON_AMPERAGES = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100];
+export const COMMON_AMPERAGES = [6, 10, 13, 15, 16, 20, 25, 32, 40, 50, 63, 80, 100];
 
 export const FUSE_TYPE_COLORS: Record<FuseType, string> = {
   MCB: '#3B82F6',      // Blue
