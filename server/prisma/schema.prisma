@@ -74,6 +74,9 @@ model Fuse {
   spdVoltageRating       Int?    @map("spd_voltage_rating")
   spdSurgeCurrentRating  Int?    @map("spd_surge_current_rating")
   spdClass               String? @map("spd_class")
+  // NEK 400:2022 § 514.5.1 required fields
+  cableCrossSection      String? @map("cable_cross_section")
+  circuitLength          Int?    @map("circuit_length")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

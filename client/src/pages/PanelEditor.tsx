@@ -55,6 +55,18 @@ export function PanelEditor() {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: panel?.name || 'Panel',
+    pageStyle: `
+      @page {
+        margin: 1cm;
+        size: A4;
+      }
+      @media print {
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+      }
+    `,
   });
 
   const handleOpenSettings = () => {

@@ -30,6 +30,9 @@ const createFuseSchema = z.object({
   spdVoltageRating: z.number().int().min(100).max(1000).optional(),
   spdSurgeCurrentRating: z.number().int().min(1).max(200).optional(),
   spdClass: spdClassEnum.optional(),
+  // NEK 400:2022 § 514.5.1 required fields
+  cableCrossSection: z.string().max(50).optional(),
+  circuitLength: z.number().int().min(0).max(9999).optional(),
 });
 
 const updateFuseSchema = createFuseSchema.partial().omit({ panelId: true });

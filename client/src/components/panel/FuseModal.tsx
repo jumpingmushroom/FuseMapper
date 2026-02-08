@@ -46,6 +46,9 @@ export function FuseModal({
     spdVoltageRating: undefined as number | undefined,
     spdSurgeCurrentRating: undefined as number | undefined,
     spdClass: null as SpdClass,
+    // NEK 400:2022 § 514.5.1 fields
+    cableCrossSection: '',
+    circuitLength: undefined as number | undefined,
   });
 
   useEffect(() => {
@@ -67,6 +70,9 @@ export function FuseModal({
         spdVoltageRating: fuse.spdVoltageRating ?? undefined,
         spdSurgeCurrentRating: fuse.spdSurgeCurrentRating ?? undefined,
         spdClass: fuse.spdClass as SpdClass,
+        // NEK 400:2022 § 514.5.1 fields
+        cableCrossSection: fuse.cableCrossSection || '',
+        circuitLength: fuse.circuitLength ?? undefined,
       });
     } else {
       setFormData({
@@ -86,6 +92,9 @@ export function FuseModal({
         spdVoltageRating: undefined,
         spdSurgeCurrentRating: undefined,
         spdClass: null,
+        // NEK 400:2022 § 514.5.1 fields
+        cableCrossSection: '',
+        circuitLength: undefined,
       });
     }
   }, [fuse, open]);
@@ -109,6 +118,9 @@ export function FuseModal({
       spdVoltageRating: formData.type === 'SPD' ? formData.spdVoltageRating : undefined,
       spdSurgeCurrentRating: formData.type === 'SPD' ? formData.spdSurgeCurrentRating : undefined,
       spdClass: formData.type === 'SPD' ? formData.spdClass : null,
+      // NEK 400:2022 § 514.5.1 fields
+      cableCrossSection: formData.cableCrossSection || undefined,
+      circuitLength: formData.circuitLength,
     };
     await onSubmit(data);
   };
@@ -251,6 +263,27 @@ export function FuseModal({
             value={formData.model}
             onChange={(e) => setFormData({ ...formData, model: e.target.value })}
           />
+        </div>
+
+        <div className="border-t border-gray-200 pt-4 mt-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Cable Specifications (NEK 400 § 514.5.1)</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Cable Cross-Section"
+              placeholder="3x1.5mm², 5x2.5mm², etc."
+              value={formData.cableCrossSection}
+              onChange={(e) => setFormData({ ...formData, cableCrossSection: e.target.value })}
+            />
+            <Input
+              label="Circuit Length (meters)"
+              type="number"
+              placeholder="0-9999"
+              min="0"
+              max="9999"
+              value={formData.circuitLength ?? ''}
+              onChange={(e) => setFormData({ ...formData, circuitLength: e.target.value ? parseInt(e.target.value) : undefined })}
+            />
+          </div>
         </div>
 
         <Input

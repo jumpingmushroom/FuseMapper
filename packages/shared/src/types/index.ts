@@ -117,6 +117,9 @@ export interface Fuse {
   spdVoltageRating: number | null;
   spdSurgeCurrentRating: number | null;
   spdClass: SpdClass;
+  // NEK 400:2022 § 514.5.1 required fields
+  cableCrossSection: string | null;
+  circuitLength: number | null;
   createdAt: Date;
   updatedAt: Date;
   sockets?: Socket[];
@@ -145,6 +148,9 @@ export interface CreateFuseInput {
   spdVoltageRating?: number;
   spdSurgeCurrentRating?: number;
   spdClass?: SpdClass;
+  // NEK 400:2022 § 514.5.1 fields
+  cableCrossSection?: string;
+  circuitLength?: number;
 }
 
 export interface UpdateFuseInput {
@@ -166,6 +172,9 @@ export interface UpdateFuseInput {
   spdVoltageRating?: number | null;
   spdSurgeCurrentRating?: number | null;
   spdClass?: SpdClass;
+  // NEK 400:2022 § 514.5.1 fields
+  cableCrossSection?: string | null;
+  circuitLength?: number | null;
 }
 
 // Junction Box Types
